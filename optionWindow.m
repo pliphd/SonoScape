@@ -30,11 +30,15 @@ classdef optionWindow < handle
         SaveACITotalCheck
         SaveACIEvennessCheck
         SaveACIIntermediateCheck
+        
+        ImportButton
+        CancelButton
     end
     
     properties
         time = struct('format', {'HHmm-ddMMYYYY'}, 'value', [])
         save = struct('ACITotal', 1, 'ACIEvenness', 1, 'ACIIntermediate', 0)
+        imported = 0
     end
     
     methods
@@ -45,15 +49,20 @@ classdef optionWindow < handle
     
     methods (Access = private)
         function createComponents(app)
-            Pos = CenterFig(300, 200, 'pixels');
+            Pos = CenterFig(350, 250, 'pixels');
             app.WizardFigure = uifigure('Color', 'w', ...
                 'Units', 'pixels', 'Position', Pos, ...
                 'Name', 'Soundscape Options', ...
                 'NumberTitle', 'off', 'Resize', 'off');
             
-            app.TabGroup  = uitabgroup(app.WizardFigure, ...
-                'Position', [1 1 Pos(3)-1 Pos(4)-1], ...
+            gFigure = uigridlayout(app.WizardFigure);
+            gFigure.RowHeight   = repmat({'1x'}, 1, 8);
+            gFigure.ColumnWidth = repmat({'1x'}, 1, 5);
+            
+            app.TabGroup  = uitabgroup(gFigure, ...
                 'TabLocation', 'left');
+            app.TabGroup.Layout.Row    = [1 length(gFigure.RowHeight)-1];
+            app.TabGroup.Layout.Column = [1 5];
             app.ImportTab = uitab(app.TabGroup, 'Title', 'Import');
             app.SaveTab   = uitab(app.TabGroup, 'Title', 'Save');
             
@@ -129,6 +138,18 @@ classdef optionWindow < handle
                 'Value', 0, ...
                 'Text', 'FFT matrix and ACI matrix', ...
                 'ValueChangedFcn', @(source, event) SaveACIIterCallback(app, source, event));
+            
+            % confirm
+            app.ImportButton = uibutton(gFigure, 'Text', 'OK', ...
+                'ButtonPushedFcn', @(source, event) ImportButtonCallback(app, source, event));
+            app.ImportButton.Layout.Row    = length(gFigure.RowHeight);
+            app.ImportButton.Layout.Column = 4;
+            
+            % cancel
+            app.CancelButton = uibutton(gFigure, 'Text', 'Cancel', ...
+                'ButtonPushedFcn', @(source, event) CancelButtonCallback(app, source, event));
+            app.CancelButton.Layout.Row    = length(gFigure.RowHeight);
+            app.CancelButton.Layout.Column = 5;
         end
     end
     
@@ -150,6 +171,16 @@ classdef optionWindow < handle
         
         function SaveACIIterCallback(app, source, event)
             app.save.ACIIntermediate = event.Value;
+        end
+        
+        function app = ImportButtonCallback(app, source, event)
+            app.imported = 1;
+            closereq;
+        end
+        
+        function app = CancelButtonCallback(app, source, event)
+            app.imported = 0;
+            closereq;
         end
     end
 end
