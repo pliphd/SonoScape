@@ -13,7 +13,6 @@
 % 
 classdef optionWindow < handle
     properties (Access = private)
-        WizardFigure
         TabGroup
         ImportTab
         SaveTab
@@ -36,6 +35,8 @@ classdef optionWindow < handle
     end
     
     properties
+        WizardFigure
+        
         time = struct('format', {'HHmm-ddMMYYYY'}, 'value', [])
         save = struct('ACITotal', 1, 'ACIEvenness', 1, 'ACIIntermediate', 0)
         imported = 0
@@ -102,7 +103,7 @@ classdef optionWindow < handle
             app.TimeFileSelect = uibutton(app.TimeButtonGroup, ...
                 'Tooltip', 'select a file that contains time info for each file', ...
                 'Position', [125 3 80 20], ...
-                'Text', 'Select');
+                'Text', 'Select', 'Enable', 'off');
             
             % layout SaveTab
             gSave = uigridlayout(app.SaveTab);
