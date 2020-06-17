@@ -1,3 +1,16 @@
+% ACI analysis
+% 
+% Descriptions tba
+% 
+%   $Author:  Peng Li, Ph.D.
+%                   Division of Sleep Medicine, Brigham & Women's Hospital
+%                   Division of Sleep Medicine, Harvard Medical School
+%   $Date:    Mar 1, 2020
+% 
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%                      (C) Peng Li 2020 -
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+% 
 classdef ecoacousticAnalysis < handle
     properties
         % data
@@ -201,6 +214,33 @@ classdef ecoacousticAnalysis < handle
             save(fullfile(savept, 'cache.mat'), 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__');
         end
         
+        function aciWriteIntermediate(this, savept)
+            for iS = 1:length(this.timescale)
+                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
+                if ~(exist(newFolder, 'dir') == 7)
+                    mkdir(newFolder);
+                end
+                
+                % acift
+                filept = fullfile(newFolder, ['ACIFt_' num2str(this.timescale(iS)) '.txt']);
+                writematrix(this.aciT{iS}, filept);
+                
+                % acitf
+                filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '.txt']);
+                writematrix(this.aciF{iS}', filept);
+                
+                for iF = 1:size(this.amplitudeSpectrum{iS}, 3)
+                    filept = fullfile(newFolder, ['FFT_' num2str(this.timescale(iS)) '_' num2str(iF) '.txt']);
+                    writematrix(this.amplitudeSpectrum{iS}(:, :, iF), filept);
+                end
+            end
+        end
+    end
+    
+    methods (Hidden = true)
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        % +++++++          output other options              ++++++++++++++
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         function aciWrite(this, filename)
             % write template
             % aciFTo, aciTTo, aciFEveness, aciTEvenness
