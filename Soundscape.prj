@@ -3,19 +3,17 @@
     <param.appname>Soundscape</param.appname>
     <param.icon />
     <param.icons />
-    <param.version>1.2</param.version>
+    <param.version>0.1</param.version>
     <param.authnamewatermark>Peng Li</param.authnamewatermark>
     <param.email>pli9@bwh.harvard.edu</param.email>
     <param.company />
     <param.summary />
-    <param.description>Changes from last time:
-(1) added options menu function
-(2) fix bug @ default time scale</param.description>
-    <param.screenshot />
+    <param.description />
+    <param.screenshot>${PROJECT_ROOT}\src\sc.jpg</param.screenshot>
     <param.guid />
     <param.installpath.string>\Soundscape\</param.installpath.string>
     <param.installpath.combo>option.installpath.programfiles</param.installpath.combo>
-    <param.logo />
+    <param.logo>${PROJECT_ROOT}\src\sc_logo.jpg</param.logo>
     <param.install.notes />
     <param.target.install.notes />
     <param.intermediate>${PROJECT_ROOT}\Soundscape\for_testing</param.intermediate>
@@ -43,21 +41,16 @@
 	 
  Input Arguments 
 	 -?  print help on how to use the application 
-	 input arguments 
- Description 
- 	 Changes from last time:
-(1) added options menu function
-(2) fix bug @ default time scale</param.help.text>
+	 input arguments</param.help.text>
     <unset>
       <param.icon />
       <param.icons />
       <param.company />
       <param.summary />
-      <param.screenshot />
+      <param.description />
       <param.guid />
       <param.installpath.string />
       <param.installpath.combo />
-      <param.logo />
       <param.install.notes />
       <param.target.install.notes />
       <param.intermediate />
@@ -86,6 +79,7 @@
     <fileset.resources>
       <file>${PROJECT_ROOT}\ecoacousticEvent.m</file>
       <file>${PROJECT_ROOT}\optionWindow.m</file>
+      <file>${PROJECT_ROOT}\src\encode.gif</file>
       <file>${PROJECT_ROOT}\src\parameter.gif</file>
     </fileset.resources>
     <fileset.package />
