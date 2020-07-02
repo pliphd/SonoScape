@@ -39,6 +39,11 @@ classdef ecoacousticEvent < handle
                 fclose(fid);
             end
         end
+        
+        function eeWriteMat(this, savept)
+            ee__ = this.ee;
+            save(fullfile(savept, 'cache_ee.mat'), 'ee__');
+        end
     end
     
     methods
