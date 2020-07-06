@@ -214,7 +214,7 @@ classdef optionWindow < handle
             if contains(event.NewValue.Text, 'comma')
                 app.asciiSep = ',';
             elseif contains(event.NewValue.Text, 'tab')
-                app.asciiSep = 'tab';
+                app.asciiSep = '\t';
             end
         end
         
