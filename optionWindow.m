@@ -30,6 +30,11 @@ classdef optionWindow < handle
         SaveACIEvennessCheck
         SaveACIIntermediateCheck
         
+        AsciiFormatText
+        AsciiButtonG
+        AsciiTabCheck
+        AsciiComCheck
+        
         ImportButton
         CancelButton
     end
@@ -38,7 +43,10 @@ classdef optionWindow < handle
         WizardFigure
         
         time = struct('format', {'HHmm-ddMMYYYY'}, 'value', [])
-        save = struct('ACITotal', 1, 'ACIEvenness', 1, 'ACIIntermediate', 0)
+        save = struct('ACITotal', 1, ...
+            'ACIEvenness', 1, ...
+            'ACIIntermediate', 0)
+        asciiSep = 'tab';
         imported = 0
     end
     
@@ -64,10 +72,14 @@ classdef optionWindow < handle
                 'TabLocation', 'left');
             app.TabGroup.Layout.Row    = [1 length(gFigure.RowHeight)-1];
             app.TabGroup.Layout.Column = [1 5];
+            
+            % tab 1
             app.ImportTab = uitab(app.TabGroup, 'Title', 'Import');
+            
+            % tab 2
             app.SaveTab   = uitab(app.TabGroup, 'Title', 'Save');
             
-            % layout ImportTab
+            %% layout ImportTab
             gImport = uigridlayout(app.ImportTab);
             gImport.RowHeight   = repmat({'1x'}, 1, 6);
             gImport.ColumnWidth = {'fit', '2x'};
@@ -105,10 +117,11 @@ classdef optionWindow < handle
                 'Position', [125 3 80 20], ...
                 'Text', 'Select', 'Enable', 'off');
             
-            % layout SaveTab
+            %% layout SaveTab
             gSave = uigridlayout(app.SaveTab);
-            gSave.RowHeight   = repmat({'1x'}, 1, 6);
+            gSave.RowHeight   = gSave.Parent.Position(4)./10 .* ones(20, 1); % to make it scrollable
             gSave.ColumnWidth = {'fit', '2x'};
+            gSave.Scrollable  = 'on';
             
             % 1. section title
             app.SaveSectionText = uilabel(gSave, ...
@@ -119,11 +132,11 @@ classdef optionWindow < handle
             
             % 2. section content
             app.SavePanel = uipanel(gSave);
-            app.SavePanel.Layout.Row    = [2 6];
+            app.SavePanel.Layout.Row    = [2 5];
             app.SavePanel.Layout.Column = [1 2];
             
             gSaveContent = uigridlayout(app.SavePanel);
-            gSaveContent.RowHeight   = repmat({'1x'}, 1, 5);
+            gSaveContent.RowHeight   = repmat({'1x'}, 1, 4);
             gSaveContent.ColumnWidth = {'fit'};
             
             % 2.1 
@@ -140,6 +153,29 @@ classdef optionWindow < handle
                 'Text', 'FFT matrix and ACI matrix', ...
                 'ValueChangedFcn', @(source, event) SaveACIIterCallback(app, source, event));
             
+            % 3. section title
+            app.AsciiFormatText = uilabel(gSave, ...
+                'Text', 'ASCII file seperator', 'HorizontalAlignment', 'left', ...
+                'BackgroundColor', [.75 .75 .75]);
+            app.AsciiFormatText.Layout.Row    = 6;
+            app.AsciiFormatText.Layout.Column = [1 2];
+            
+            % 4. section content
+            app.AsciiButtonG  = uibuttongroup(gSave, ...
+                'SelectionChangedFcn', @(source, event) AsciiButtonGSelectChgCallback(app, source, event));
+            app.AsciiButtonG.Layout.Row = [7 8];
+            app.AsciiButtonG.Layout.Column = [1 2];
+            
+            app.AsciiTabCheck = uiradiobutton(app.AsciiButtonG, ...
+                'Value', 1, ...
+                'Text', 'tab (\t)');
+            app.AsciiTabCheck.Position = app.AsciiTabCheck.Position + [0 15 0 0];
+            app.AsciiComCheck = uiradiobutton(app.AsciiButtonG, ...
+                'Value', 0, ...
+                'Text', 'comma (,)');
+            app.AsciiComCheck.Position = app.AsciiComCheck.Position - [0 5 0 0];
+            
+            %% return
             % confirm
             app.ImportButton = uibutton(gFigure, 'Text', 'OK', ...
                 'ButtonPushedFcn', @(source, event) ImportButtonCallback(app, source, event));
@@ -172,6 +208,14 @@ classdef optionWindow < handle
         
         function SaveACIIterCallback(app, source, event)
             app.save.ACIIntermediate = event.Value;
+        end
+        
+        function AsciiButtonGSelectChgCallback(app, source, event)
+            if contains(event.NewValue.Text, 'comma')
+                app.asciiSep = ',';
+            elseif contains(event.NewValue.Text, 'tab')
+                app.asciiSep = 'tab';
+            end
         end
         
         function app = ImportButtonCallback(app, source, event)
