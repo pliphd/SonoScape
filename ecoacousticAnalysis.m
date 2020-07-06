@@ -187,7 +187,7 @@ classdef ecoacousticAnalysis < handle
         % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         % +++++++                output                      ++++++++++++++
         % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        function aciWriteSeperate(this, savept)
+        function aciWriteSeperate(this, savept, sep)
             for iS = 1:length(this.timescale)
                 curTbl = [this.aciFTo{iS}(:), this.aciTTo{iS}(:), ...
                     this.aciFEvenness{iS}(:), this.aciTEvenness{iS}(:)];
@@ -196,14 +196,14 @@ classdef ecoacousticAnalysis < handle
                     mkdir(newFolder);
                 end
                 fid = fopen(fullfile(newFolder, ['CODES_' num2str(this.timescale(iS)) '.txt']), 'w');
-                fprintf(fid, '%f\t%f\t%f\t%f\r\n', curTbl');
+                fprintf(fid, "%f"+sep+"%f"+sep+"%f"+sep+"%f\r\n", curTbl');
                 fclose(fid);
             end
         end
         
-        function aciWriteMax(this, savept)
+        function aciWriteMax(this, savept, sep)
             curTbl = table(this.timescale(:), this.aciTToMax(:), 'VariableNames', {'timescale_in_sec', 'max_acift'});
-            writetable(curTbl, fullfile(savept, 'ACIFtMax.txt'), 'Delimiter', 'tab');
+            writetable(curTbl, fullfile(savept, 'ACIFtMax.txt'), 'Delimiter', sep);
         end
         
         function aciWriteMat(this, savept)
@@ -214,7 +214,7 @@ classdef ecoacousticAnalysis < handle
             save(fullfile(savept, 'cache.mat'), 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__');
         end
         
-        function aciWriteIntermediate(this, savept)
+        function aciWriteIntermediate(this, savept, sep)
             for iS = 1:length(this.timescale)
                 newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
                 if ~(exist(newFolder, 'dir') == 7)
@@ -223,15 +223,15 @@ classdef ecoacousticAnalysis < handle
                 
                 % acift
                 filept = fullfile(newFolder, ['ACIFt_' num2str(this.timescale(iS)) '.txt']);
-                writematrix(this.aciT{iS}, filept);
+                writematrix(this.aciT{iS}, filept, 'Delimiter', sep);
                 
                 % acitf
                 filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '.txt']);
-                writematrix(this.aciF{iS}', filept);
+                writematrix(this.aciF{iS}', filept, 'Delimiter', sep);
                 
                 for iF = 1:size(this.amplitudeSpectrum{iS}, 3)
                     filept = fullfile(newFolder, ['FFT_' num2str(this.timescale(iS)) '_' num2str(iF) '.txt']);
-                    writematrix(this.amplitudeSpectrum{iS}(:, :, iF), filept);
+                    writematrix(this.amplitudeSpectrum{iS}(:, :, iF), filept, 'Delimiter', sep);
                 end
             end
         end
