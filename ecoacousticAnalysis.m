@@ -211,10 +211,11 @@ classdef ecoacousticAnalysis < handle
             aciTToMax__    = this.aciTToMax;
             aciTEvenness__ = this.aciTEvenness;
             aciFEvenness__ = this.aciFEvenness;
-            save(fullfile(savept, 'cache.mat'), 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__');
+            aciF__         = this.aciF;
+            save(fullfile(savept, 'cache.mat'), 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__');
         end
         
-        function aciWriteIntermediate(this, savept, sep)
+        function aciWriteACIMatrix(this, savept, sep)
             for iS = 1:length(this.timescale)
                 newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
                 if ~(exist(newFolder, 'dir') == 7)
@@ -228,6 +229,15 @@ classdef ecoacousticAnalysis < handle
                 % acitf
                 filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '.txt']);
                 writematrix(this.aciF{iS}', filept, 'Delimiter', sep);
+            end
+        end
+        
+        function aciWriteIntermediate(this, savept, sep)
+            for iS = 1:length(this.timescale)
+                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
+                if ~(exist(newFolder, 'dir') == 7)
+                    mkdir(newFolder);
+                end
                 
                 for iF = 1:size(this.amplitudeSpectrum{iS}, 3)
                     filept = fullfile(newFolder, ['FFT_' num2str(this.timescale(iS)) '_' num2str(iF) '.txt']);
