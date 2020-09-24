@@ -212,7 +212,8 @@ classdef ecoacousticAnalysis < handle
             aciTEvenness__ = this.aciTEvenness;
             aciFEvenness__ = this.aciFEvenness;
             aciF__         = this.aciF;
-            save(fullfile(savept, 'cache.mat'), 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__');
+            aciT__         = this.aciT;
+            save(fullfile(savept, 'cache.mat'), 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
         end
         
         function aciWriteACIMatrix(this, savept, sep)
