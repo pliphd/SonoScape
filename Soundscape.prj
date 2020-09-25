@@ -3,7 +3,7 @@
     <param.appname>Soundscape</param.appname>
     <param.icon />
     <param.icons />
-    <param.version>0.1</param.version>
+    <param.version>0.2</param.version>
     <param.authnamewatermark>Peng Li</param.authnamewatermark>
     <param.email>pli9@bwh.harvard.edu</param.email>
     <param.company />
@@ -77,6 +77,7 @@
       <file>${PROJECT_ROOT}\ezSoundscape.mlapp</file>
     </fileset.main>
     <fileset.resources>
+      <file>${PROJECT_ROOT}\aciResultSheet.mlapp</file>
       <file>${PROJECT_ROOT}\ecoacousticEvent.m</file>
       <file>${PROJECT_ROOT}\optionWindow.m</file>
       <file>${PROJECT_ROOT}\src\encode.gif</file>
@@ -97,15 +98,21 @@
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2020a</root>
+      <root>C:\Program Files\MATLAB\R2020b</root>
       <toolboxes>
         <toolbox name="matlabcoder" />
+        <toolbox name="fixedpoint" />
         <toolbox name="neuralnetwork" />
       </toolboxes>
       <toolbox>
         <matlabcoder>
           <enabled>true</enabled>
         </matlabcoder>
+      </toolbox>
+      <toolbox>
+        <fixedpoint>
+          <enabled>true</enabled>
+        </fixedpoint>
       </toolbox>
       <toolbox>
         <neuralnetwork>
