@@ -208,13 +208,15 @@ classdef ecoacousticAnalysis < handle
         
         function aciWriteMat(this, savept)
             aciTimescale__ = this.timescale;
+            aciPara__      = this.acousticComplexity;
             aciTTo__       = this.aciTTo;
             aciTToMax__    = this.aciTToMax;
             aciTEvenness__ = this.aciTEvenness;
             aciFEvenness__ = this.aciFEvenness;
             aciF__         = this.aciF;
             aciT__         = this.aciT;
-            save(fullfile(savept, 'cache.mat'), 'aciTimescale__', 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
+            save(fullfile(savept, 'cache.mat'), ...
+                'aciTimescale__', 'aciPara__', 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
         end
         
         function aciWriteACIMatrix(this, savept, sep)
