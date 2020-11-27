@@ -48,7 +48,7 @@ classdef optionWindow < handle
             'ACIEvenness', 1, ...
             'ACIMatrix', 1, ...
             'ACIIntermediate', 0)
-        asciiSep = 'tab';
+        asciiSep = '\t';
         imported = 0
     end
     
