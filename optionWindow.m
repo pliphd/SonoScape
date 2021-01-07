@@ -53,8 +53,27 @@ classdef optionWindow < handle
     end
     
     methods
-        function app = optionWindow
+        function app = optionWindow(varargin)
             createComponents(app);
+            
+            % load preset
+            switch nargin
+                case 3
+                    app.time = varargin{1};
+                    app.save = varargin{2};
+                    app.asciiSep = varargin{3};
+                    
+                    app.TimeFilenameEdit.Value = app.time.format;
+                    app.SaveACIIntermediateCheck.Value = app.save.ACIIntermediate;
+                    
+                    if contains(app.asciiSep, '\t')
+                        app.AsciiTabCheck.Value = 1;
+                        app.AsciiComCheck.Value = 0;
+                    else
+                        app.AsciiTabCheck.Value = 0;
+                        app.AsciiComCheck.Value = 1;
+                    end
+            end
         end
     end
     
@@ -226,6 +245,12 @@ classdef optionWindow < handle
         
         function app = ImportButtonCallback(app, source, event)
             app.imported = 1;
+            
+            timeConf = app.time;
+            saveConf = app.save;
+            asciiSepConf = app.asciiSep;
+            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf'); %#ok
+            
             closereq;
         end
         
