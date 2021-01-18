@@ -23,9 +23,9 @@ classdef ecoacousticAnalysis < handle
         
         % acoustic complexity
         acousticComplexity = struct(...
-            'clumping',       [], ...
-            'minEnergy',      [], ...
-            'cutOffFreqLine', []);
+            'clumping',     [], ...
+            'energyFilter', struct('field', {'near'}, 'lowEnergy', [], 'highEnergy', []), ...
+            'freqFilter',   struct('lowFreq', [], 'highFreq', []));
     end
     
     % hidden properties for future
@@ -121,11 +121,16 @@ classdef ecoacousticAnalysis < handle
             end
             
             % filtering
-            if ~isempty(this.acousticComplexity.minEnergy)
-                ampSpec(ampSpec <= this.acousticComplexity.minEnergy) = 0;
+            if strcmp(this.acousticComplexity.energyFilter.field, 'near')
+                ampSpec(ampSpec <= this.acousticComplexity.energyFilter.highEnergy) = 0;
+            else
+                ampSpec(ampSpec >= this.acousticComplexity.energyFilter.highEnergy | ampSpec <= this.acousticComplexity.energyFilter.lowEnergy) = 0;
             end
-            if ~isempty(this.acousticComplexity.cutOffFreqLine)
-                ampSpec(1:this.acousticComplexity.cutOffFreqLine, :)  = 0;
+            if ~isempty(this.acousticComplexity.freqFilter.lowFreq)
+                ampSpec(1:this.acousticComplexity.freqFilter.lowFreq, :)  = 0;
+            end
+            if ~isempty(this.acousticComplexity.freqFilter.highFreq)
+                ampSpec(this.acousticComplexity.freqFilter.highFreq:end, :)  = 0;
             end
             
             % acitf and acift
@@ -460,11 +465,16 @@ function aciF = aciFCell(ampSpec, parameter)
     end
     
     % filtering
-    if ~isempty(parameter.minEnergy)
-        ampSpec(ampSpec <= parameter.minEnergy) = 0;
+    if strcmp(parameter.energyFilter.field, 'near')
+        ampSpec(ampSpec <= parameter.energyFilter.highEnergy) = 0;
+    else
+        ampSpec(ampSpec >= parameter.energyFilter.highEnergy | ampSpec <= parameter.energyFilter.lowEnergy) = 0;
     end
-    if ~isempty(parameter.cutOffFreqLine)
-        ampSpec(1:parameter.cutOffFreqLine, :, :) = 0;
+    if ~isempty(parameter.freqFilter.lowFreq)
+        ampSpec(1:parameter.freqFilter.lowFreq, :, :) = 0;
+    end
+    if ~isinf(parameter.freqFilter.highFreq)
+        ampSpec(parameter.freqFilter.highFreq:end, :, :) = 0;
     end
     
     % do calc
@@ -495,11 +505,16 @@ function aciT = aciTCell(ampSpec, parameter)
     end
     
     % filtering
-    if ~isempty(parameter.minEnergy)
-        ampSpec(ampSpec <= parameter.minEnergy) = 0;
+    if strcmp(parameter.energyFilter.field, 'near')
+        ampSpec(ampSpec <= parameter.energyFilter.highEnergy) = 0;
+    else
+        ampSpec(ampSpec >= parameter.energyFilter.highEnergy | ampSpec <= parameter.energyFilter.lowEnergy) = 0;
     end
-    if ~isempty(parameter.cutOffFreqLine)
-        ampSpec(1:parameter.cutOffFreqLine, :, :) = 0;
+    if ~isempty(parameter.freqFilter.lowFreq)
+        ampSpec(1:parameter.freqFilter.lowFreq, :, :) = 0;
+    end
+    if ~isinf(parameter.freqFilter.highFreq)
+        ampSpec(parameter.freqFilter.highFreq:end, :, :) = 0;
     end
     
     % do calc
@@ -525,18 +540,23 @@ function out = aciFor(singleS, parameter)
     ft = nan(p, c);
     
     for iP = 1:p
-        tf(iP, :) = aci(singleS(:, :, iP), parameter.minEnergy, 'tf');
-        ft(iP, :) = aci(singleS(:, :, iP), parameter.minEnergy, 'ft')';
+        tf(iP, :) = aci(singleS(:, :, iP), parameter.energyFilter, 'tf');
+        ft(iP, :) = aci(singleS(:, :, iP), parameter.energyFilter, 'ft')';
     end
     
     out = [{tf}, {ft}];
 end
 
-function res = aci(fftMat, minEnergy, option)
+function res = aci(fftMat, energyFilter, option)
 %ACI
 
 fftMat = fftMat'; % make time as row and frequency lines as column
-fftMat(fftMat <= minEnergy) = 0;
+
+if strcmp(energyFilter, 'near')
+    fftMat(fftMat <= energyFilter.highEnergy) = 0;
+else
+    fftMat(fftMat >= energyFilter.highEnergy | fftMat <= energyFilter.lowEnergy) = 0;
+end
 
 switch option
     case 'tf'
