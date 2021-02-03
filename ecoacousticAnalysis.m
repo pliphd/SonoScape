@@ -67,24 +67,175 @@ classdef ecoacousticAnalysis < handle
     
     % visible methods
     methods
+        function ecoAna(this)
+            tsRescale = this.rescale;
+            this.stft(tsRescale);
+            this.aci;
+            this.aciEvenness;
+            this.aciTotal;
+        end
+    end
+    
+    methods
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        % +++++++ methods match the implemental of SFractal  ++++++++++++++
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        function tsRescale = rescale(this)
+            % in case non divisible
+            trem = floor(length(this.ts) ./ (this.fs*this.timescale)) .* (this.fs*this.timescale);
+            para = [this.timescale(:) trem(:)];
+            tsRescale = arrayfun(@(x) reshape(this.ts(1:para(x, 2)), this.fs*para(x, 1), []), 1:size(para, 1), ...
+                'UniformOutput', 0);
+        end
+        
+        function stft(this, tsRescale)
+            this.amplitudeSpectrum = cellfun(@(x) stftCell(x, this.fs, ...
+                'Window', this.window, 'OverlapLength', 0), ...
+                tsRescale, 'UniformOutput', 0);
+        end
+        
+        function aci(this)
+            this.aciF = cellfun(@(x) aciFCell(x, this.acousticComplexity), ...
+                this.amplitudeSpectrum, 'UniformOutput', 0);
+            
+            this.aciT = cellfun(@(x) aciTCell(x, this.acousticComplexity), ...
+                this.amplitudeSpectrum, 'UniformOutput', 0);
+        end
+    end
+    
+    methods
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        % +++++++   common implementations shared for all    ++++++++++++++
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        function aciEvenness(this)
+            this.aciFEvenness = cellfun(@doAciEvenness, this.aciF, 'UniformOutput', 0);
+            this.aciTEvenness = cellfun(@doAciEvenness, this.aciT, 'UniformOutput', 0);
+        end
+        
+        function aciTotal(this)
+            this.aciFTo = cellfun(@nansum, this.aciF, 'UniformOutput', 0);
+            this.aciTTo = cellfun(@nansum, this.aciT, 'UniformOutput', 0);
+        end
+        
+        function aciTotalMax(this)
+            this.aciTToMax = cellfun(@(x) squeeze(max(x, [], 2)), this.aciTTo, 'UniformOutput', 0);
+        end
+    end
+    
+    methods
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        % +++++++                output                      ++++++++++++++
+        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        function aciWriteSeperate(this, savept, sep)
+            for iS = 1:length(this.timescale)
+                % loop filters
+                filter = this.acousticComplexity.energyFilter.highEnergy;
+                for iH = 1:numel(filter)
+                    % codes
+                    curTbl = [this.aciFTo{iS}(:, :, iH)', this.aciTTo{iS}(:, :, iH)', ...
+                        this.aciFEvenness{iS}(:, :, iH)', this.aciTEvenness{iS}(:, :, iH)'];
+                    newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
+                    if ~(exist(newFolder, 'dir') == 7)
+                        mkdir(newFolder);
+                    end
+                    fid = fopen(fullfile(newFolder, ['CODES_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']), 'w');
+                    fprintf(fid, "%f"+sep+"%f"+sep+"%f"+sep+"%f\r\n", curTbl');
+                    fclose(fid);
+                end
+            end
+        end
+        
+        function aciWriteMax(this, savept, sep)
+            tempAciTToMax = cat(2, this.aciTToMax{:})';
+            filterInTab   = ones(numel(this.timescale), 1) * this.acousticComplexity.energyFilter.highEnergy(:)';
+            
+            if strcmp(this.acousticComplexity.energyFilter.field, 'near')
+                outTbl = table(filterInTab(:), ...
+                    repmat(this.timescale(:), numel(this.acousticComplexity.energyFilter.highEnergy), 1), ...
+                    tempAciTToMax(:), ...
+                    'VariableNames', {'high_energy', 'timescale_in_sec', 'max_acift'});
+            else
+                outTbl = table(this.acousticComplexity.energyFilter.lowEnergy * ones(numel(this.acousticComplexity.energyFilter.highEnergy)*numel(this.timescale), 1), ...
+                    filterInTab(:), ...
+                    repmat(this.timescale(:), numel(this.acousticComplexity.energyFilter.highEnergy), 1), ...
+                    tempAciTToMax(:), ...
+                    'VariableNames', {'low_energy', 'high_energy', 'timescale_in_sec', 'max_acift'});
+            end
+            
+            writetable(outTbl, fullfile(savept, 'ACIFtMax.txt'), 'Delimiter', sep);
+        end
+        
+        function aciWriteMat(this, savept)
+            aciTimescale__ = this.timescale;
+            aciPara__      = this.acousticComplexity;
+            aciTTo__       = this.aciTTo;
+            aciTToMax__    = this.aciTToMax;
+            aciTEvenness__ = this.aciTEvenness;
+            aciFEvenness__ = this.aciFEvenness;
+            aciF__         = this.aciF;
+            aciT__         = this.aciT;
+            save(fullfile(savept, 'cache.mat'), ...
+                'aciTimescale__', 'aciPara__', 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
+        end
+        
+        function aciWriteACIMatrix(this, savept, sep)
+            for iS = 1:length(this.timescale)
+                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
+                if ~(exist(newFolder, 'dir') == 7)
+                    mkdir(newFolder);
+                end
+                
+                % loop filters
+                filter = this.acousticComplexity.energyFilter.highEnergy;
+                for iH = 1:numel(filter)
+                    % acift
+                    filept = fullfile(newFolder, ['ACIFt_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
+                    writematrix(this.aciT{iS}(:, :, iH), filept, 'Delimiter', sep);
+                    
+                    % acitf
+                    filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
+                    writematrix(this.aciF{iS}(:, :, iH)', filept, 'Delimiter', sep);
+                    
+                    % acift_tot
+                    filept = fullfile(newFolder, ['ACIFt_Tot_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
+                    writematrix(this.aciTTo{iS}(:, :, iH), filept, 'Delimiter', sep);
+                    
+                    % acitf
+                    filept = fullfile(newFolder, ['ACITf_Tot_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
+                    writematrix(this.aciFTo{iS}(:, :, iH)', filept, 'Delimiter', sep);
+                end
+            end
+        end
+        
+        function aciWriteIntermediate(this, savept, sep)
+            for iS = 1:length(this.timescale)
+                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
+                if ~(exist(newFolder, 'dir') == 7)
+                    mkdir(newFolder);
+                end
+                
+                for iF = 1:size(this.amplitudeSpectrum{iS}, 3)
+                    filept = fullfile(newFolder, ['FFT_' num2str(this.timescale(iS)) '_' num2str(iF) '.txt']);
+                    writematrix(this.amplitudeSpectrum{iS}(:, :, iF), filept, 'Delimiter', sep);
+                end
+            end
+        end
+    end
+    
+    %% development paused
+    % upper level
+    methods (Hidden = true)
         function ecoAnaFast(this)
             this.stftOverlap;
             this.aciCalc;
             this.aciEvenness;
             this.aciTotal
         end
-        
-        function ecoAna(this)
-            tsRescale = this.rescale;
-            this.stft(tsRescale);
-            this.aci;
-            this.aciEvenness;
-            this.aciTotal
-        end
     end
     
     % private
-    methods
+    % not updated for vectorized filters
+    methods (Hidden = true)
         % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         % +++++++ using overlap stft to speed up calculation ++++++++++++++
         % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -142,120 +293,6 @@ classdef ecoacousticAnalysis < handle
         end
     end
     
-    methods
-        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        % +++++++ methods match the implemental of SFractal  ++++++++++++++
-        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        function tsRescale = rescale(this)
-            % in case non divisible
-            trem = floor(length(this.ts) ./ (this.fs*this.timescale)) .* (this.fs*this.timescale);
-            para = [this.timescale(:) trem(:)];
-            tsRescale = arrayfun(@(x) reshape(this.ts(1:para(x, 2)), this.fs*para(x, 1), []), 1:size(para, 1), ...
-                'UniformOutput', 0);
-        end
-        
-        function stft(this, tsRescale)
-            this.amplitudeSpectrum = cellfun(@(x) stftCell(x, this.fs, ...
-                'Window', this.window, 'OverlapLength', 0), ...
-                tsRescale, 'UniformOutput', 0);
-        end
-        
-        function aci(this)
-            this.aciF = cellfun(@(x) aciFCell(x, this.acousticComplexity), ...
-                this.amplitudeSpectrum, 'UniformOutput', 0);
-            
-            this.aciT = cellfun(@(x) aciTCell(x, this.acousticComplexity), ...
-                this.amplitudeSpectrum, 'UniformOutput', 0);
-        end
-    end
-    
-    methods
-        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        % +++++++   common implementations shared for all    ++++++++++++++
-        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        function aciEvenness(this)
-            this.aciFEvenness = cellfun(@doAciEvenness, this.aciF, 'UniformOutput', 0);
-            this.aciTEvenness = cellfun(@doAciEvenness, this.aciT, 'UniformOutput', 0);
-        end
-        
-        function aciTotal(this)
-            this.aciFTo = cellfun(@nansum, this.aciF, 'UniformOutput', 0);
-            this.aciTTo = cellfun(@nansum, this.aciT, 'UniformOutput', 0);
-        end
-        
-        function aciTotalMax(this)
-            this.aciTToMax = cellfun(@max, this.aciTTo);
-        end
-    end
-    
-    methods
-        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        % +++++++                output                      ++++++++++++++
-        % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        function aciWriteSeperate(this, savept, sep)
-            for iS = 1:length(this.timescale)
-                curTbl = [this.aciFTo{iS}(:), this.aciTTo{iS}(:), ...
-                    this.aciFEvenness{iS}(:), this.aciTEvenness{iS}(:)];
-                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
-                if ~(exist(newFolder, 'dir') == 7)
-                    mkdir(newFolder);
-                end
-                fid = fopen(fullfile(newFolder, ['CODES_' num2str(this.timescale(iS)) '.txt']), 'w');
-                fprintf(fid, "%f"+sep+"%f"+sep+"%f"+sep+"%f\r\n", curTbl');
-                fclose(fid);
-            end
-        end
-        
-        function aciWriteMax(this, savept, sep)
-            curTbl = table(this.timescale(:), this.aciTToMax(:), 'VariableNames', {'timescale_in_sec', 'max_acift'});
-            writetable(curTbl, fullfile(savept, 'ACIFtMax.txt'), 'Delimiter', sep);
-        end
-        
-        function aciWriteMat(this, savept)
-            aciTimescale__ = this.timescale;
-            aciPara__      = this.acousticComplexity;
-            aciTTo__       = this.aciTTo;
-            aciTToMax__    = this.aciTToMax;
-            aciTEvenness__ = this.aciTEvenness;
-            aciFEvenness__ = this.aciFEvenness;
-            aciF__         = this.aciF;
-            aciT__         = this.aciT;
-            save(fullfile(savept, 'cache.mat'), ...
-                'aciTimescale__', 'aciPara__', 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
-        end
-        
-        function aciWriteACIMatrix(this, savept, sep)
-            for iS = 1:length(this.timescale)
-                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
-                if ~(exist(newFolder, 'dir') == 7)
-                    mkdir(newFolder);
-                end
-                
-                % acift
-                filept = fullfile(newFolder, ['ACIFt_' num2str(this.timescale(iS)) '.txt']);
-                writematrix(this.aciT{iS}, filept, 'Delimiter', sep);
-                
-                % acitf
-                filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '.txt']);
-                writematrix(this.aciF{iS}', filept, 'Delimiter', sep);
-            end
-        end
-        
-        function aciWriteIntermediate(this, savept, sep)
-            for iS = 1:length(this.timescale)
-                newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
-                if ~(exist(newFolder, 'dir') == 7)
-                    mkdir(newFolder);
-                end
-                
-                for iF = 1:size(this.amplitudeSpectrum{iS}, 3)
-                    filept = fullfile(newFolder, ['FFT_' num2str(this.timescale(iS)) '_' num2str(iF) '.txt']);
-                    writematrix(this.amplitudeSpectrum{iS}(:, :, iF), filept, 'Delimiter', sep);
-                end
-            end
-        end
-    end
-    
     methods (Hidden = true)
         % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         % +++++++          output other options              ++++++++++++++
@@ -273,7 +310,6 @@ classdef ecoacousticAnalysis < handle
             end
         end
     end
-    
     
     methods (Hidden = true, Access = private)
         % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -297,7 +333,7 @@ classdef ecoacousticAnalysis < handle
     end
     
     % methods works on single scale
-    methods
+    methods (Hidden = true)
         function stft_(this, curScale)
             tsRescale = reshape(this.ts, this.fs*curScale, []);
             ampSpec   = stft(tsRescale, 'Window', this.window, 'OverlapLength', 0);
@@ -310,11 +346,13 @@ classdef ecoacousticAnalysis < handle
         end
     end
     
+    %% constructor
     methods
         function this = ecoacousticAnalysis
         end
     end
     
+    %% other dependencies
     % get. and set. for dependent variables
     methods
         function val = get.amplitudeSpectrum(this)
@@ -464,12 +502,7 @@ function aciF = aciFCell(ampSpec, parameter)
         end
     end
     
-    % filtering
-    if strcmp(parameter.energyFilter.field, 'near')
-        ampSpec(ampSpec <= parameter.energyFilter.highEnergy) = 0;
-    else
-        ampSpec(ampSpec >= parameter.energyFilter.highEnergy | ampSpec <= parameter.energyFilter.lowEnergy) = 0;
-    end
+    % filtering --- frequency filters
     if ~isempty(parameter.freqFilter.lowFreq)
         ampSpec(1:parameter.freqFilter.lowFreq, :, :) = 0;
     end
@@ -477,15 +510,29 @@ function aciF = aciFCell(ampSpec, parameter)
         ampSpec(parameter.freqFilter.highFreq:end, :, :) = 0;
     end
     
-    % do calc
-    numerator = abs(ampSpec(:, 1:end-1, :) - ampSpec(:, 2:end, :));
+    % calc
+    aciF = arrayfun(@(x) aciFEachFilter(ampSpec, parameter.energyFilter.field, parameter.energyFilter.lowEnergy, x), ...
+        parameter.energyFilter.highEnergy, 'UniformOutput', 0);
+    aciF = cat(3, aciF{:});
     
-    % per rule of ACI, set result to zero if either one is zero
-    numerator(ampSpec(:, 1:end-1, :) == 0 | ampSpec(:, 2:end, :) == 0) = 0;
-    
-    denominator = ampSpec(:, 1:end-1, :) + ampSpec(:, 2:end, :);
-    
-    aciF = squeeze(nansum(numerator ./ denominator, 2));
+    function aciF = aciFEachFilter(ampSpec, field, lowEnergy, highEnergy)
+        % filtering --- amplitude filters
+        if strcmp(field, 'near')
+            ampSpec(ampSpec <= highEnergy) = 0;
+        else
+            ampSpec(ampSpec >= highEnergy | ampSpec <= lowEnergy) = 0;
+        end
+        
+        % do calc
+        numerator = abs(ampSpec(:, 1:end-1, :) - ampSpec(:, 2:end, :));
+        
+        % per rule of ACI, set result to zero if either one is zero
+        numerator(ampSpec(:, 1:end-1, :) == 0 | ampSpec(:, 2:end, :) == 0) = 0;
+        
+        denominator = ampSpec(:, 1:end-1, :) + ampSpec(:, 2:end, :);
+        
+        aciF = squeeze(nansum(numerator ./ denominator, 2));
+    end
 end
 
 function aciT = aciTCell(ampSpec, parameter)
@@ -504,12 +551,7 @@ function aciT = aciTCell(ampSpec, parameter)
         end
     end
     
-    % filtering
-    if strcmp(parameter.energyFilter.field, 'near')
-        ampSpec(ampSpec <= parameter.energyFilter.highEnergy) = 0;
-    else
-        ampSpec(ampSpec >= parameter.energyFilter.highEnergy | ampSpec <= parameter.energyFilter.lowEnergy) = 0;
-    end
+    % filtering --- frequency filters
     if ~isempty(parameter.freqFilter.lowFreq)
         ampSpec(1:parameter.freqFilter.lowFreq, :, :) = 0;
     end
@@ -517,18 +559,32 @@ function aciT = aciTCell(ampSpec, parameter)
         ampSpec(parameter.freqFilter.highFreq:end, :, :) = 0;
     end
     
-    % do calc
-    numerator = abs(ampSpec(1:end-1, :, :) - ampSpec(2:end, :, :));
-    numerator(ampSpec(1:end-1, :, :) == 0 | ampSpec(2:end, :, :) == 0) = 0;
-
-    denominator = ampSpec(1:end-1, :, :) + ampSpec(2:end, :, :);
-
-    aciT = squeeze(nansum(numerator ./ denominator, 1));
+    % calc
+    aciT = arrayfun(@(x) aciTEachFilter(ampSpec, parameter.energyFilter.field, parameter.energyFilter.lowEnergy, x), ...
+        parameter.energyFilter.highEnergy, 'UniformOutput', 0);
+    aciT = cat(3, aciT{:});
     
-    % in case time scale == data length in sec, no rescale will happen to
-    % ampSpec, and aciT will be a row vector, force it to be a column
-    if size(aciT, 1) == 1
-        aciT = aciT(:);
+    function aciT = aciTEachFilter(ampSpec, field, lowEnergy, highEnergy)
+        % filtering --- amplitude filters
+        if strcmp(field, 'near')
+            ampSpec(ampSpec <= highEnergy) = 0;
+        else
+            ampSpec(ampSpec >= highEnergy | ampSpec <= lowEnergy) = 0;
+        end
+        
+        % do calc
+        numerator = abs(ampSpec(1:end-1, :, :) - ampSpec(2:end, :, :));
+        numerator(ampSpec(1:end-1, :, :) == 0 | ampSpec(2:end, :, :) == 0) = 0;
+        
+        denominator = ampSpec(1:end-1, :, :) + ampSpec(2:end, :, :);
+        
+        aciT = squeeze(nansum(numerator ./ denominator, 1));
+        
+        % in case time scale == data length in sec, no rescale will happen to
+        % ampSpec, and aciT will be a row vector, force it to be a column
+        if size(aciT, 1) == 1
+            aciT = aciT(:);
+        end
     end
 end
 
