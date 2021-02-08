@@ -7,6 +7,7 @@ classdef ecoacousticEvent < handle
     
     properties (Hidden = true)
         timescale
+        highEnergy
         aciTToMax
     end
     
@@ -16,7 +17,7 @@ classdef ecoacousticEvent < handle
     
     methods
         function eeCalc(this)
-            aciTToNorm = cellfun(@(x, y) x ./ y, this.aciTTo, num2cell(this.aciTToMax), 'UniformOutput', 0);
+            aciTToNorm = cellfun(@(x, y) x ./ y, this.aciTTo, this.aciTToMax, 'UniformOutput', 0);
             
             binEdge = 0:.1:1;
             
@@ -24,7 +25,7 @@ classdef ecoacousticEvent < handle
             secondPlace = cellfun(@(x) discretize(x, binEdge)-1, this.aciTEvenness, 'UniformOutput', 0);
             thirdPlace  = cellfun(@(x) discretize(x, binEdge)-1, this.aciFEvenness, 'UniformOutput', 0);
             
-            this.ee = cellfun(@(x, y, z) string(x(:))+string(y(:))+string(z(:)), ...
+            this.ee     = cellfun(@(x, y, z) string(x)+string(y)+string(z), ...
                 firstPlace, secondPlace, thirdPlace, 'UniformOutput', 0);
         end
         
@@ -34,9 +35,11 @@ classdef ecoacousticEvent < handle
                 if ~(exist(newFolder, 'dir') == 7)
                     mkdir(newFolder);
                 end
-                fid = fopen(fullfile(newFolder, ['EE_' num2str(this.timescale(iS)) '.txt']), 'w');
-                fprintf(fid, '%s\r\n', this.ee{iS});
-                fclose(fid);
+                for iH = 1:numel(this.highEnergy)
+                    fid = fopen(fullfile(newFolder, ['EE_' num2str(this.timescale(iS)) '_high_energy_' num2str(this.highEnergy(iH))  '.txt']), 'w');
+                    fprintf(fid, '%s\r\n', this.ee{iS}(:, :, iH));
+                    fclose(fid);
+                end
             end
         end
         
