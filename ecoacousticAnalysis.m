@@ -38,14 +38,15 @@ classdef ecoacousticAnalysis < handle
     
     % intermediate things, set hidden later
     properties (Dependent = true, Hidden = false)
-        amplitudeSpectrum
-        aciF
-        aciT
+        amplitudeSpectrum                % 512 * #windows * #segments
+        aciF                             % collapse dim 2 --> 512      * #segments * #highEnergyFilters
+        aciT                             % collapse dim 1 --> #windows * #segments * #highEnergyFilters
     end
     
     properties (Dependent = true)
-        aciFTo
-        aciTTo
+        aciFTot                          % collapse dim 2 from aciF --> 512 * 1         * #highEnergyFilters
+        aciFTo                           % collapse dim 1 from aciF --> 1   * #segments * #highEnergyFilters
+        aciTTo                           % collapse dim 1 from aciT --> 1   * #segments * #highEnergyFilters
         aciTToMax
         aciFEvenness
         aciTEvenness
@@ -57,6 +58,7 @@ classdef ecoacousticAnalysis < handle
         aciF_
         aciT_
         
+        aciFTot_
         aciFTo_
         aciTTo_
         aciTToMax_
@@ -113,12 +115,14 @@ classdef ecoacousticAnalysis < handle
         end
         
         function aciTotal(this)
-            this.aciFTo = cellfun(@nansum, this.aciF, 'UniformOutput', 0);
-            this.aciTTo = cellfun(@nansum, this.aciT, 'UniformOutput', 0);
+            this.aciFTot = cellfun(@(x) nansum(x, 2), this.aciF, 'UniformOutput', 0);
+            
+            this.aciFTo  = cellfun(@nansum, this.aciF, 'UniformOutput', 0);
+            this.aciTTo  = cellfun(@nansum, this.aciT, 'UniformOutput', 0);
         end
         
         function aciTotalMax(this)
-            this.aciTToMax = cellfun(@(x) squeeze(max(x, [], 2)), this.aciTTo, 'UniformOutput', 0);
+            this.aciTToMax = cellfun(@(x) max(x, [], 2), this.aciTTo, 'UniformOutput', 0);
         end
     end
     
@@ -196,13 +200,13 @@ classdef ecoacousticAnalysis < handle
                     filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
                     writematrix(this.aciF{iS}(:, :, iH)', filept, 'Delimiter', sep);
                     
-                    % acift_tot
+                    % acift_to
                     filept = fullfile(newFolder, ['ACIFt_Tot_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
                     writematrix(this.aciTTo{iS}(:, :, iH), filept, 'Delimiter', sep);
                     
-                    % acitf
+                    % acitf_tot
                     filept = fullfile(newFolder, ['ACITf_Tot_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
-                    writematrix(this.aciFTo{iS}(:, :, iH)', filept, 'Delimiter', sep);
+                    writematrix(this.aciFTot{iS}(:, :, iH)', filept, 'Delimiter', sep);
                 end
             end
         end
@@ -417,6 +421,14 @@ classdef ecoacousticAnalysis < handle
         
         function set.aciFTo(this, val)
             this.aciFTo_ = val;
+        end
+        
+        function val = get.aciFTot(this)
+            val = this.aciFTot_;
+        end
+        
+        function set.aciFTot(this, val)
+            this.aciFTot_ = val;
         end
     end
 end
