@@ -150,7 +150,7 @@ classdef ecoacousticAnalysis < handle
         end
         
         function aciWriteMax(this, savept, sep)
-            tempAciTToMax = cat(2, this.aciTToMax{:})';
+            tempAciTToMax = squeeze(cat(1, this.aciTToMax{:}));
             filterInTab   = ones(numel(this.timescale), 1) * this.acousticComplexity.energyFilter.highEnergy(:)';
             
             if strcmp(this.acousticComplexity.energyFilter.field, 'near')
