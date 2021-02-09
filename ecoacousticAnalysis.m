@@ -143,10 +143,19 @@ classdef ecoacousticAnalysis < handle
                     if ~(exist(newFolder, 'dir') == 7)
                         mkdir(newFolder);
                     end
-                    fid = fopen(fullfile(newFolder, ...
-                        "CODES_" + num2str(this.timescale(iS)) ...
-                        + '_LE'  + num2str(filter(iF, 1)) ...
-                        + '_HE'  + num2str(filter(iF, 2)) + '.txt'), 'w');
+                    
+                    switch this.acousticComplexity.energyFilter.field
+                        case 'near'
+                            fid = fopen(fullfile(newFolder, ...
+                                "CODES_"  + num2str(this.timescale(iS)) ...
+                                + '_near_' + num2str(filter(iF, 2)) + '.txt'), 'w');
+                        case 'far'
+                            fid = fopen(fullfile(newFolder, ...
+                                "CODES_"  + num2str(this.timescale(iS)) ...
+                                + '_far_' + num2str(filter(iF, 1)) ...
+                                + '_'     + num2str(filter(iF, 2)) + '.txt'), 'w');
+                    end
+                            
                     fprintf(fid, "%f"+sep+"%f"+sep+"%f"+sep+"%f\r\n", curTbl');
                     fclose(fid);
                 end
@@ -161,7 +170,7 @@ classdef ecoacousticAnalysis < handle
             outTbl = [array2table(temp, 'VariableNames', {'timescale_in_sec', 'low_energy', 'high_energy'}), ...
                 table(tempAciTToMax(:), 'VariableNames', {'max_acift'})];
             
-            writetable(outTbl, fullfile(savept, 'ACIFtMax.txt'), 'Delimiter', sep);
+            writetable(outTbl, fullfile(savept, 'ACIFtMax_' + string(this.acousticComplexity.energyFilter.field) + '.txt'), 'Delimiter', sep);
         end
         
         function aciWriteMat(this, savept)
@@ -186,34 +195,34 @@ classdef ecoacousticAnalysis < handle
                 
                 % loop filters
                 [LOW, HIGH] = ndgrid(this.acousticComplexity.energyFilter.lowEnergy, this.acousticComplexity.energyFilter.highEnergy);
-                filter = [LOW(:) HIGH(:)];
+                filter      = [LOW(:) HIGH(:)];
+                
                 for iF = 1:size(filter, 1)
+                    switch this.acousticComplexity.energyFilter.field
+                        case 'near'
+                            nameParts = "_near_" + num2str(filter(iF, 2)) + '.txt';
+                        case 'far'
+                            nameParts = "_far_"  + num2str(filter(iF, 1)) + "_" + num2str(filter(iF, 2)) + '.txt';
+                    end
+                    
                     % acift
                     filept = fullfile(newFolder, ...
-                        "ACIFt_" + num2str(this.timescale(iS)) ...
-                        + '_LE'  + num2str(filter(iF, 1)) ...
-                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                        "ACIFt_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciT{iS}(:, :, iF), filept, 'Delimiter', sep);
                     
                     % acitf
                     filept = fullfile(newFolder, ...
-                        "ACITf_" + num2str(this.timescale(iS)) ...
-                        + '_LE'  + num2str(filter(iF, 1)) ...
-                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                        "ACITf_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciF{iS}(:, :, iF)', filept, 'Delimiter', sep);
                     
                     % acift_to
                     filept = fullfile(newFolder, ...
-                        "ACIFt_Tot_" + num2str(this.timescale(iS)) ...
-                        + '_LE'  + num2str(filter(iF, 1)) ...
-                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                        "ACIFt_Tot_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciTTo{iS}(:, :, iF), filept, 'Delimiter', sep);
                     
                     % acitf_tot
                     filept = fullfile(newFolder, ...
-                        "ACITf_Tot_" + num2str(this.timescale(iS)) ...
-                        + '_LE'  + num2str(filter(iF, 1)) ...
-                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                        "ACITf_Tot_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciFTot{iS}(:, :, iF)', filept, 'Delimiter', sep);
                 end
             end

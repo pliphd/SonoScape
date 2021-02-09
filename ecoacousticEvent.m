@@ -7,6 +7,7 @@ classdef ecoacousticEvent < handle
     
     properties (Hidden = true)
         timescale
+        field
         lowEnergy
         highEnergy
         aciTToMax
@@ -39,10 +40,18 @@ classdef ecoacousticEvent < handle
                 [LOW, HIGH] = ndgrid(this.lowEnergy, this.highEnergy);
                 filter = [LOW(:) HIGH(:)];
                 for iF = 1:size(filter, 1)
-                    fid = fopen(fullfile(newFolder, ...
-                        "EE_" + num2str(this.timescale(iS)) ...
-                        + '_LE' + num2str(filter(iF, 1)) ...
-                        + '_HE' + num2str(filter(iF, 2)) + '.txt'), 'w');
+                    switch this.field
+                        case 'near'
+                            fid = fopen(fullfile(newFolder, ...
+                                "EE_" + num2str(this.timescale(iS)) ...
+                                + '_near_' + num2str(filter(iF, 2)) + '.txt'), 'w');
+                        case 'far'
+                            fid = fopen(fullfile(newFolder, ...
+                                "EE_" + num2str(this.timescale(iS)) ...
+                                + '_far_' + num2str(filter(iF, 1)) ...
+                                + '_' + num2str(filter(iF, 2)) + '.txt'), 'w');
+                    end
+                    
                     fprintf(fid, '%s\r\n', this.ee{iS}(:, :, iF));
                     fclose(fid);
                 end
