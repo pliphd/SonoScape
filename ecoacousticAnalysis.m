@@ -133,16 +133,20 @@ classdef ecoacousticAnalysis < handle
         function aciWriteSeperate(this, savept, sep)
             for iS = 1:length(this.timescale)
                 % loop filters
-                filter = this.acousticComplexity.energyFilter.highEnergy;
-                for iH = 1:numel(filter)
+                [LOW, HIGH] = ndgrid(this.acousticComplexity.energyFilter.lowEnergy, this.acousticComplexity.energyFilter.highEnergy);
+                filter = [LOW(:) HIGH(:)];
+                for iF = 1:size(filter, 1)
                     % codes
-                    curTbl = [this.aciFTo{iS}(:, :, iH)', this.aciTTo{iS}(:, :, iH)', ...
-                        this.aciFEvenness{iS}(:, :, iH)', this.aciTEvenness{iS}(:, :, iH)'];
+                    curTbl = [this.aciFTo{iS}(:, :, iF)', this.aciTTo{iS}(:, :, iF)', ...
+                        this.aciFEvenness{iS}(:, :, iF)', this.aciTEvenness{iS}(:, :, iF)'];
                     newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
                     if ~(exist(newFolder, 'dir') == 7)
                         mkdir(newFolder);
                     end
-                    fid = fopen(fullfile(newFolder, ['CODES_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']), 'w');
+                    fid = fopen(fullfile(newFolder, ...
+                        "CODES_" + num2str(this.timescale(iS)) ...
+                        + '_LE'  + num2str(filter(iF, 1)) ...
+                        + '_HE'  + num2str(filter(iF, 2)) + '.txt'), 'w');
                     fprintf(fid, "%f"+sep+"%f"+sep+"%f"+sep+"%f\r\n", curTbl');
                     fclose(fid);
                 end
@@ -151,20 +155,11 @@ classdef ecoacousticAnalysis < handle
         
         function aciWriteMax(this, savept, sep)
             tempAciTToMax = squeeze(cat(1, this.aciTToMax{:}));
-            filterInTab   = ones(numel(this.timescale), 1) * this.acousticComplexity.energyFilter.highEnergy(:)';
             
-            if strcmp(this.acousticComplexity.energyFilter.field, 'near')
-                outTbl = table(filterInTab(:), ...
-                    repmat(this.timescale(:), numel(this.acousticComplexity.energyFilter.highEnergy), 1), ...
-                    tempAciTToMax(:), ...
-                    'VariableNames', {'high_energy', 'timescale_in_sec', 'max_acift'});
-            else
-                outTbl = table(this.acousticComplexity.energyFilter.lowEnergy * ones(numel(this.acousticComplexity.energyFilter.highEnergy)*numel(this.timescale), 1), ...
-                    filterInTab(:), ...
-                    repmat(this.timescale(:), numel(this.acousticComplexity.energyFilter.highEnergy), 1), ...
-                    tempAciTToMax(:), ...
-                    'VariableNames', {'low_energy', 'high_energy', 'timescale_in_sec', 'max_acift'});
-            end
+            [SCALE, LOW, HIGH] = ndgrid(this.timescale, this.acousticComplexity.energyFilter.lowEnergy, this.acousticComplexity.energyFilter.highEnergy);
+            temp   = [SCALE(:) LOW(:) HIGH(:)];
+            outTbl = [array2table(temp, 'VariableNames', {'timescale_in_sec', 'low_energy', 'high_energy'}), ...
+                table(tempAciTToMax(:), 'VariableNames', {'max_acift'})];
             
             writetable(outTbl, fullfile(savept, 'ACIFtMax.txt'), 'Delimiter', sep);
         end
@@ -190,23 +185,36 @@ classdef ecoacousticAnalysis < handle
                 end
                 
                 % loop filters
-                filter = this.acousticComplexity.energyFilter.highEnergy;
-                for iH = 1:numel(filter)
+                [LOW, HIGH] = ndgrid(this.acousticComplexity.energyFilter.lowEnergy, this.acousticComplexity.energyFilter.highEnergy);
+                filter = [LOW(:) HIGH(:)];
+                for iF = 1:size(filter, 1)
                     % acift
-                    filept = fullfile(newFolder, ['ACIFt_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
-                    writematrix(this.aciT{iS}(:, :, iH), filept, 'Delimiter', sep);
+                    filept = fullfile(newFolder, ...
+                        "ACIFt_" + num2str(this.timescale(iS)) ...
+                        + '_LE'  + num2str(filter(iF, 1)) ...
+                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                    writematrix(this.aciT{iS}(:, :, iF), filept, 'Delimiter', sep);
                     
                     % acitf
-                    filept = fullfile(newFolder, ['ACITf_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
-                    writematrix(this.aciF{iS}(:, :, iH)', filept, 'Delimiter', sep);
+                    filept = fullfile(newFolder, ...
+                        "ACITf_" + num2str(this.timescale(iS)) ...
+                        + '_LE'  + num2str(filter(iF, 1)) ...
+                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                    writematrix(this.aciF{iS}(:, :, iF)', filept, 'Delimiter', sep);
                     
                     % acift_to
-                    filept = fullfile(newFolder, ['ACIFt_Tot_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
-                    writematrix(this.aciTTo{iS}(:, :, iH), filept, 'Delimiter', sep);
+                    filept = fullfile(newFolder, ...
+                        "ACIFt_Tot_" + num2str(this.timescale(iS)) ...
+                        + '_LE'  + num2str(filter(iF, 1)) ...
+                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                    writematrix(this.aciTTo{iS}(:, :, iF), filept, 'Delimiter', sep);
                     
                     % acitf_tot
-                    filept = fullfile(newFolder, ['ACITf_Tot_' num2str(this.timescale(iS)) '_high_energy_' num2str(filter(iH)) '.txt']);
-                    writematrix(this.aciFTot{iS}(:, :, iH)', filept, 'Delimiter', sep);
+                    filept = fullfile(newFolder, ...
+                        "ACITf_Tot_" + num2str(this.timescale(iS)) ...
+                        + '_LE'  + num2str(filter(iF, 1)) ...
+                        + '_HE'  + num2str(filter(iF, 2)) + '.txt');
+                    writematrix(this.aciFTot{iS}(:, :, iF)', filept, 'Delimiter', sep);
                 end
             end
         end
@@ -523,8 +531,9 @@ function aciF = aciFCell(ampSpec, parameter)
     end
     
     % calc
-    aciF = arrayfun(@(x) aciFEachFilter(ampSpec, parameter.energyFilter.field, parameter.energyFilter.lowEnergy, x), ...
-        parameter.energyFilter.highEnergy, 'UniformOutput', 0);
+    [LOW, HIGH] = ndgrid(parameter.energyFilter.lowEnergy, parameter.energyFilter.highEnergy);
+    aciF = arrayfun(@(x, y) aciFEachFilter(ampSpec, parameter.energyFilter.field, x, y), ...
+        LOW, HIGH, 'UniformOutput', 0);
     aciF = cat(3, aciF{:});
     
     function aciF = aciFEachFilter(ampSpec, field, lowEnergy, highEnergy)
@@ -572,8 +581,9 @@ function aciT = aciTCell(ampSpec, parameter)
     end
     
     % calc
-    aciT = arrayfun(@(x) aciTEachFilter(ampSpec, parameter.energyFilter.field, parameter.energyFilter.lowEnergy, x), ...
-        parameter.energyFilter.highEnergy, 'UniformOutput', 0);
+    [LOW, HIGH] = ndgrid(parameter.energyFilter.lowEnergy, parameter.energyFilter.highEnergy);
+    aciT = arrayfun(@(x, y) aciTEachFilter(ampSpec, parameter.energyFilter.field, x, y), ...
+        LOW, HIGH, 'UniformOutput', 0);
     aciT = cat(3, aciT{:});
     
     function aciT = aciTEachFilter(ampSpec, field, lowEnergy, highEnergy)
@@ -600,8 +610,7 @@ function aciT = aciTCell(ampSpec, parameter)
     end
 end
 
-
-% currently no use
+%% currently no use
 function out = aciFor(singleS, parameter)
     [r, c, p]  = size(singleS);
     tf = nan(p, r);

@@ -7,6 +7,7 @@ classdef ecoacousticEvent < handle
     
     properties (Hidden = true)
         timescale
+        lowEnergy
         highEnergy
         aciTToMax
     end
@@ -35,9 +36,14 @@ classdef ecoacousticEvent < handle
                 if ~(exist(newFolder, 'dir') == 7)
                     mkdir(newFolder);
                 end
-                for iH = 1:numel(this.highEnergy)
-                    fid = fopen(fullfile(newFolder, ['EE_' num2str(this.timescale(iS)) '_high_energy_' num2str(this.highEnergy(iH))  '.txt']), 'w');
-                    fprintf(fid, '%s\r\n', this.ee{iS}(:, :, iH));
+                [LOW, HIGH] = ndgrid(this.lowEnergy, this.highEnergy);
+                filter = [LOW(:) HIGH(:)];
+                for iF = 1:size(filter, 1)
+                    fid = fopen(fullfile(newFolder, ...
+                        "EE_" + num2str(this.timescale(iS)) ...
+                        + '_LE' + num2str(filter(iF, 1)) ...
+                        + '_HE' + num2str(filter(iF, 2)) + '.txt'), 'w');
+                    fprintf(fid, '%s\r\n', this.ee{iS}(:, :, iF));
                     fclose(fid);
                 end
             end
