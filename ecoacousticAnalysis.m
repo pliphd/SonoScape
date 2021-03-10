@@ -193,6 +193,9 @@ classdef ecoacousticAnalysis < handle
                     mkdir(newFolder);
                 end
                 
+                % gran total files location
+                resFolder = fileparts(savept);
+                
                 % loop filters
                 [LOW, HIGH] = ndgrid(this.acousticComplexity.energyFilter.lowEnergy, this.acousticComplexity.energyFilter.highEnergy);
                 filter      = [LOW(:) HIGH(:)];
@@ -215,7 +218,7 @@ classdef ecoacousticAnalysis < handle
                         "ACITf_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciF{iS}(:, :, iF)', filept, 'Delimiter', sep);
                     
-                    % acift_to
+                    % acift_tot
                     filept = fullfile(newFolder, ...
                         "ACIFt_Tot_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciTTo{iS}(:, :, iF), filept, 'Delimiter', sep);
@@ -224,6 +227,16 @@ classdef ecoacousticAnalysis < handle
                     filept = fullfile(newFolder, ...
                         "ACITf_Tot_" + num2str(this.timescale(iS)) + nameParts);
                     writematrix(this.aciFTot{iS}(:, :, iF)', filept, 'Delimiter', sep);
+                    
+                    % acift_ttot
+                    filept = fullfile(resFolder, ...
+                        "ACIFt_TTot_" + num2str(this.timescale(iS)) + nameParts);
+                    writematrix(this.aciTTo{iS}(:, :, iF), filept, 'Delimiter', sep, 'WriteMode', 'append');
+                    
+                    % acitf_ttot
+                    filept = fullfile(resFolder, ...
+                        "ACITf_TTot_" + num2str(this.timescale(iS)) + nameParts);
+                    writematrix(this.aciFTot{iS}(:, :, iF)', filept, 'Delimiter', sep, 'WriteMode', 'append');
                 end
             end
         end
