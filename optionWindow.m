@@ -16,6 +16,7 @@ classdef optionWindow < handle
         TabGroup
         ImportTab
         SaveTab
+        ComputeTab
         
         TimeSectionText
         TimeButtonGroup
@@ -36,6 +37,12 @@ classdef optionWindow < handle
         AsciiTabCheck
         AsciiComCheck
         
+        ACISectionText
+        ACIButtonGroup
+        ACIAdaptButton
+        ACIFixButton
+        ACIFixValueEdit
+        
         ImportButton
         CancelButton
     end
@@ -49,6 +56,9 @@ classdef optionWindow < handle
             'ACIMatrix', 1, ...
             'ACIIntermediate', 0)
         asciiSep = '\t';
+        
+        compute = struct('ACIFtMax', {'adaptive'}, 'value', []);
+        
         imported = 0
     end
     
@@ -58,12 +68,12 @@ classdef optionWindow < handle
             
             % load preset
             switch nargin
-                case 3
+                case 4
                     app.time = varargin{1};
+                    app.TimeFilenameEdit.Value = app.time.format;
+                    
                     app.save = varargin{2};
                     app.asciiSep = varargin{3};
-                    
-                    app.TimeFilenameEdit.Value = app.time.format;
                     app.SaveACIIntermediateCheck.Value = app.save.ACIIntermediate;
                     
                     if contains(app.asciiSep, '\t')
@@ -72,6 +82,17 @@ classdef optionWindow < handle
                     else
                         app.AsciiTabCheck.Value = 0;
                         app.AsciiComCheck.Value = 1;
+                    end
+                    
+                    app.compute = varargin{4};
+                    switch app.compute.ACIFtMax
+                        case 'adaptive'
+                            app.ACIButtonGroup.SelectedObject = app.ACIAdaptButton;
+                            app.ACIFixValueEdit.Enable = 'off';
+                        case 'fixed'
+                            app.ACIButtonGroup.SelectedObject = app.ACIFixButton;
+                            app.ACIFixValueEdit.Enable = 'on';
+                            app.ACIFixValueEdit.Value  = num2str(app.compute.value);
                     end
             end
         end
@@ -95,10 +116,13 @@ classdef optionWindow < handle
             app.TabGroup.Layout.Column = [1 5];
             
             % tab 1
-            app.ImportTab = uitab(app.TabGroup, 'Title', 'Import');
+            app.ImportTab  = uitab(app.TabGroup, 'Title', 'Import');
             
             % tab 2
-            app.SaveTab   = uitab(app.TabGroup, 'Title', 'Save');
+            app.SaveTab    = uitab(app.TabGroup, 'Title', 'Save');
+            
+            % tab 3
+            app.ComputeTab = uitab(app.TabGroup, 'Title', 'Compute');
             
             %% layout ImportTab
             gImport = uigridlayout(app.ImportTab);
@@ -200,6 +224,41 @@ classdef optionWindow < handle
                 'Text', 'comma (,)');
             app.AsciiComCheck.Position = app.AsciiComCheck.Position - [0 5 0 0];
             
+            %% layout ComputeTab
+            gCompute = uigridlayout(app.ComputeTab);
+            gCompute.RowHeight   = repmat({'1x'}, 1, 6);
+            gCompute.ColumnWidth = {'fit', '2x'};
+            
+            % 1. section title
+            app.ACISectionText = uilabel(gCompute, ...
+                'Text', 'Acoustic complexity index (ACI) Ft Max', 'HorizontalAlignment', 'left', ...
+                'BackgroundColor', [.75 .75 .75]);
+            app.ACISectionText.Layout.Row    = 1;
+            app.ACISectionText.Layout.Column = [1 2];
+            
+            % 2. section content
+            app.ACIButtonGroup = uibuttongroup(gCompute, ...
+                'SelectionChangedFcn', @(source, event) ACIBGCallback(app, source, event));
+            app.ACIButtonGroup.Layout.Row    = [2 3];
+            app.ACIButtonGroup.Layout.Column = [1 2];
+            
+            % 2.1. 
+            app.ACIAdaptButton = uiradiobutton(app.ACIButtonGroup, ...
+                'Text', 'Adaptive', ...
+                'Position', [6 28 100 20]);
+            
+            % 2.2.
+            app.ACIFixButton = uiradiobutton(app.ACIButtonGroup, ...
+                'Text', 'Fixed', ...
+                'Position', [6 3 100 20]);
+            app.ACIFixValueEdit = uieditfield(app.ACIButtonGroup, ...
+                'Tooltip', 'type in a single value for ACIFtMax at timescale 1 sec', ...
+                'Position', [80 3 125 20], ...
+                'Value', '7000', ...
+                'HorizontalAlignment', 'right', ...
+                'ValueChangedFcn', @(source, event) ACIFVCallback(app, source, event), ...
+                'Enable', 'off');
+            
             %% return
             % confirm
             app.ImportButton = uibutton(gFigure, 'Text', 'OK', ...
@@ -243,13 +302,30 @@ classdef optionWindow < handle
             end
         end
         
+        function ACIBGCallback(app, source, event)
+            switch event.NewValue.Text
+                case 'Adaptive'
+                    app.ACIFixValueEdit.Enable = 'off';
+                    app.compute.ACIFtMax = 'adaptive';
+                case 'Fixed'
+                    app.ACIFixValueEdit.Enable = 'on';
+                    app.compute.ACIFtMax = 'fixed';
+                    app.compute.value = 7000;
+            end
+        end
+        
+        function ACIFVCallback(app, source, event)
+            app.compute.value = eval(event.Value);
+        end
+        
         function app = ImportButtonCallback(app, source, event)
             app.imported = 1;
             
             timeConf = app.time;
             saveConf = app.save;
             asciiSepConf = app.asciiSep;
-            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf'); %#ok
+            computeConf  = app.compute;
+            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf', 'computeConf'); %#ok
             
             closereq;
         end
