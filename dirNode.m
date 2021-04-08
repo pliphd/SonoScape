@@ -14,6 +14,7 @@ function dirNode(treeHandle, topFolder, varargin)
 rnode  = uitreenode(treeHandle, 'Text', f, 'Icon', 'folderClosed.gif');
 
 nodeData.Path  = topFolder;
+nodeData.Layer = f;
 rnode.NodeData = nodeData;
 
 switch nargin
