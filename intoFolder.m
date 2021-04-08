@@ -34,7 +34,9 @@ for iF = 1:numel(topFolder)
         % sub nodes
         childNode = uitreenode('Parent', parentNode(iF), 'Text', subFolders(iS).name, ...
             'Icon', 'folderClosed.gif');
-        cNodeData.Path = fullfile(pNodeData.Path, subFolders(iS).name);
+        
+        cNodeData.Path  = fullfile(pNodeData.Path, subFolders(iS).name);
+        cNodeData.Layer = [pNodeData.Layer, string(subFolders(iS).name)];
         childNode.NodeData = cNodeData;
         
         pNodeData.ChildNodes(iS) = childNode;
