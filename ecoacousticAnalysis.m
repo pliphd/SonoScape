@@ -177,13 +177,15 @@ classdef ecoacousticAnalysis < handle
             aciTimescale__ = this.timescale;
             aciPara__      = this.acousticComplexity;
             aciTTo__       = this.aciTTo;
+            aciTToSum__    = cellfun(@(x) sum(x, 2), aciTTo__, 'UniformOutput', 0);
+            aciFTot__      = this.aciFTot;
             aciTToMax__    = this.aciTToMax;
             aciTEvenness__ = this.aciTEvenness;
             aciFEvenness__ = this.aciFEvenness;
             aciF__         = this.aciF;
             aciT__         = this.aciT;
             save(fullfile(savept, 'cache.mat'), ...
-                'aciTimescale__', 'aciPara__', 'aciTTo__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
+                'aciTimescale__', 'aciPara__', 'aciTTo__', 'aciTToSum__', 'aciFTot__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
         end
         
         function aciWriteACIMatrix(this, savept, sep)
@@ -194,7 +196,7 @@ classdef ecoacousticAnalysis < handle
                 end
                 
                 % gran total files location
-                resFolder = fileparts(savept);
+                [resFolder, filename] = fileparts(savept);
                 
                 % loop filters
                 [LOW, HIGH] = ndgrid(this.acousticComplexity.energyFilter.lowEnergy, this.acousticComplexity.energyFilter.highEnergy);
@@ -231,12 +233,20 @@ classdef ecoacousticAnalysis < handle
                     % acift_ttot
                     filept = fullfile(resFolder, ...
                         "ACIFt_TTot_" + num2str(this.timescale(iS)) + nameParts);
-                    writematrix(this.aciTTo{iS}(:, :, iF), filept, 'Delimiter', sep, 'WriteMode', 'append');
+                    writetable([table(filename) array2table([this.aciTTo{iS}(:, :, iF) sum(this.aciTTo{iS}(:, :, iF))])], ...
+                        filept, 'Delimiter', sep, 'WriteMode', 'append', 'WriteVariableNames', 0);
+                    
+                    % writematrix([this.aciTTo{iS}(:, :, iF) sum(this.aciTTo{iS}(:, :, iF))], ...
+                    %     filept, 'Delimiter', sep, 'WriteMode', 'append');
                     
                     % acitf_ttot
                     filept = fullfile(resFolder, ...
                         "ACITf_TTot_" + num2str(this.timescale(iS)) + nameParts);
-                    writematrix(this.aciFTot{iS}(:, :, iF)', filept, 'Delimiter', sep, 'WriteMode', 'append');
+                    writetable([table(filename) array2table(this.aciFTot{iS}(:, :, iF)')], ...
+                        filept, 'Delimiter', sep, 'WriteMode', 'append', 'WriteVariableNames', 0);
+                    
+                    % writematrix(this.aciFTot{iS}(:, :, iF)', ...
+                    %     filept, 'Delimiter', sep, 'WriteMode', 'append');
                 end
             end
         end
