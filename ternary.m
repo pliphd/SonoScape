@@ -14,14 +14,6 @@ classdef ternary < handle
             % parse inputs
             allArg = varargin;
             if nargin >= 5
-                argStrip = find(strcmpi(allArg, 'NumberStrip'));
-                if ~isempty(argStrip)
-                    numStrip = allArg{argStrip + 1};
-                    allArg([argStrip, argStrip+1]) = [];
-                else
-                    numStrip = 10;
-                end
-                
                 argFig = find(strcmpi(allArg, 'Parent'));
                 if ~isempty(argFig)
                     h = allArg{argFig + 1};
@@ -29,6 +21,22 @@ classdef ternary < handle
                     allArg([argFig, argFig+1]) = [];
                 else
                     h = axes('NextPlot', 'add');
+                end
+                
+                argScale = find(strcmpi(allArg, 'SizeScale'));
+                if ~isempty(argScale)
+                    sizeScale = allArg{argScale + 1};
+                    allArg([argScale, argScale+1]) = [];
+                else
+                    sizeScale = 'linear';
+                end
+                
+                argStrip = find(strcmpi(allArg, 'NumberStrip'));
+                if ~isempty(argStrip)
+                    numStrip = allArg{argStrip + 1};
+                    allArg([argStrip, argStrip+1]) = [];
+                else
+                    numStrip = 10;
                 end
                 
                 argOccu = find(strcmpi(allArg, 'Occurance'));
@@ -46,11 +54,23 @@ classdef ternary < handle
                 else
                     occuSize = [];
                 end
+                
+                argLabel =find(strcmpi(allArg, 'Label'));
+                if ~isempty(argLabel)
+                    label = allArg{argLabel + 1};
+                    allArg([argLabel, argLabel+1]) = [];
+                else
+                    label = [];
+                end
             elseif nargin == 3
-                numStrip = 10;
                 h = axes('NextPlot', 'add');
+                sizeScale = 'linear';
+                
+                numStrip = 10;
                 occu     = [];
                 occuSize = [];
+                
+                label    = [];
             end
             
             if numStrip ~= 10
@@ -82,13 +102,12 @@ classdef ternary < handle
             b = [0, 0];
             c = [numStrip, 0];
             
-            plot(h, [a(1) b(1)], [a(2) b(2)], 'LineStyle', '-', 'LineWidth', 2, 'Color', 'k');
-            plot(h, [a(1) c(1)], [a(2) c(2)], 'LineStyle', '-', 'LineWidth', 2, 'Color', 'k');
-            plot(h, [c(1) b(1)], [c(2) b(2)], 'LineStyle', '-', 'LineWidth', 2, 'Color', 'k');
+            plot(h, [a(1) b(1)], [a(2) b(2)], 'LineStyle', '-', 'LineWidth', 1, 'Color', 'k');
+            plot(h, [a(1) c(1)], [a(2) c(2)], 'LineStyle', '-', 'LineWidth', 1, 'Color', 'k');
+            plot(h, [c(1) b(1)], [c(2) b(2)], 'LineStyle', '-', 'LineWidth', 1, 'Color', 'k');
             
             set(h.Parent, 'Color', 'w');
             h.XColor = 'none'; h.YColor = 'none';
-            axis(h, 'square');
             
             % labels
             text(h, [b(1) x_bc], [b(2) y_bc]-0.4, num2str((0:numStrip-1)'), 'Rotation', 60, 'HorizontalAlignment', 'center')
@@ -110,9 +129,6 @@ classdef ternary < handle
                 % 3. sort by occurance
                 [occu, indOccu] = sort(occu);
                 allPU = allPU(indOccu, :);
-                
-                % scale size: max 200 fix
-                occuSize = (occu - min(occu)) ./ (max(occu) - min(occu)) .* 199 + 1;
             else
                 allPU = [aA(:) aB(:) aC(:)];
             end
@@ -121,11 +137,30 @@ classdef ternary < handle
             XData = numStrip - allPU(:, 2) - allPU(:, 1) .* cos(pi/3);
             YData = allPU(:, 1) .* sin(pi/3);
             
+            switch sizeScale
+                case 'log'
+                    occuLog  = log10(occu+1);
+                    occuSize = occuLog .* (200 ./ max(occuLog));
+                    
+                    % note
+                    text(h, 0, 10*sin(pi/3), 'Note: Dot size is log scaled', 'FontSize', 8);
+                case 'linear'
+                    occuSize = occu .* (200 ./ max(occu));
+            end
+            
             scatter(h, XData, YData, occuSize, occu, ...
                 'filled');
             
-            colormap(h, 'cool');
+            % 5. label
+            if ~isempty(label)
+                text(h, 4.5, -sin(pi/3), label{1});
+                text(h, 1, 4*sin(pi/3),  label{2}, 'Rotation', 60);
+                text(h, 8, 6*sin(pi/3),  label{3}, 'Rotation', -60);
+            end
+            
+            colormap(h, 'jet');
             colorbar(h);
+            axis(h, 'square');
         end
     end
 end
