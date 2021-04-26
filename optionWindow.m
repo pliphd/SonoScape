@@ -31,6 +31,7 @@ classdef optionWindow < handle
         SaveACIEvennessCheck
         SaveACIMatrixCheck
         SaveACIIntermediateCheck
+        SaveEETernaryPlotCheck
         
         AsciiFormatText
         AsciiButtonG
@@ -54,7 +55,8 @@ classdef optionWindow < handle
         save = struct('ACITotal', 1, ...
             'ACIEvenness', 1, ...
             'ACIMatrix', 1, ...
-            'ACIIntermediate', 0)
+            'ACIIntermediate', 0, ...
+            'EETernaryPlot', 0)
         asciiSep = '\t';
         
         compute = struct('ACIFtMax', {'adaptive'}, 'value', []);
@@ -75,6 +77,7 @@ classdef optionWindow < handle
                     app.save = varargin{2};
                     app.asciiSep = varargin{3};
                     app.SaveACIIntermediateCheck.Value = app.save.ACIIntermediate;
+                    app.SaveEETernaryPlotCheck.Value   = app.save.EETernaryPlot;
                     
                     if contains(app.asciiSep, '\t')
                         app.AsciiTabCheck.Value = 1;
@@ -177,11 +180,11 @@ classdef optionWindow < handle
             
             % 2. section content
             app.SavePanel = uipanel(gSave);
-            app.SavePanel.Layout.Row    = [2 5];
+            app.SavePanel.Layout.Row    = [2 6];
             app.SavePanel.Layout.Column = [1 2];
             
             gSaveContent = uigridlayout(app.SavePanel);
-            gSaveContent.RowHeight   = repmat({'1x'}, 1, 4);
+            gSaveContent.RowHeight   = repmat({'1x'}, 1, 5);
             gSaveContent.ColumnWidth = {'fit'};
             
             % 2.1 
@@ -201,18 +204,22 @@ classdef optionWindow < handle
                 'Value', 0, ...
                 'Text', 'FFT matrix', ...
                 'ValueChangedFcn', @(source, event) SaveACIIterCallback(app, source, event));
+            app.SaveEETernaryPlotCheck = uicheckbox(gSaveContent, ...
+                'Value', 0, ...
+                'Text', 'EE ternary plot', ...
+                'ValueChangedFcn', @(source, event) SaveEETernaryCallback(app, source, event));
             
             % 3. section title
             app.AsciiFormatText = uilabel(gSave, ...
                 'Text', 'ASCII file seperator', 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', [.75 .75 .75]);
-            app.AsciiFormatText.Layout.Row    = 6;
+            app.AsciiFormatText.Layout.Row    = app.SavePanel.Layout.Row(2) + 1;
             app.AsciiFormatText.Layout.Column = [1 2];
             
             % 4. section content
             app.AsciiButtonG  = uibuttongroup(gSave, ...
                 'SelectionChangedFcn', @(source, event) AsciiButtonGSelectChgCallback(app, source, event));
-            app.AsciiButtonG.Layout.Row = [7 8];
+            app.AsciiButtonG.Layout.Row = app.AsciiFormatText.Layout.Row + [1 2];
             app.AsciiButtonG.Layout.Column = [1 2];
             
             app.AsciiTabCheck = uiradiobutton(app.AsciiButtonG, ...
@@ -292,6 +299,10 @@ classdef optionWindow < handle
         
         function SaveACIIterCallback(app, source, event)
             app.save.ACIIntermediate = event.Value;
+        end
+        
+        function SaveEETernaryCallback(app, source, event)
+            app.save.EETernaryPlot = event.Value;
         end
         
         function AsciiButtonGSelectChgCallback(app, source, event)
