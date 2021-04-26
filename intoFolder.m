@@ -20,9 +20,9 @@ for iF = 1:numel(topFolder)
     
     % otherwise, parse folders
     subFolders = dir(topFolder(iF));
-    subFolders(ismember({subFolders.name}, {'.', '..'}))            = [];
-    subFolders(contains({subFolders.name}, {'results', 'Results'})) = [];
-    subFolders([subFolders.isdir] ~= 1)                             = [];
+    subFolders(ismember({subFolders.name}, {'.', '..'})) = [];
+    subFolders(contains({subFolders.name}, {'results', 'Results', 'figures', 'Figures'})) = [];
+    subFolders([subFolders.isdir] ~= 1) = [];
     
     pNodeData = get(parentNode(iF), 'NodeData');
     pNodeData.SubFolders = {subFolders.folder} + string(filesep) + {subFolders.name};
