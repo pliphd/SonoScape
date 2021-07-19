@@ -25,6 +25,10 @@ classdef optionWindow < handle
         TimeFileButton
         TimeFileSelect
         
+        InfoText
+        InfoPanel
+        ImportTemperatureCheck
+        
         SaveSectionText
         SavePanel
         SaveACITotalCheck
@@ -51,15 +55,25 @@ classdef optionWindow < handle
     properties
         WizardFigure
         
+        % pre-read parameter order
+        % {1}
         time = struct('format', {'HHmm-ddMMYYYY'}, 'value', [])
+        
+        % {2}
         save = struct('ACITotal', 1, ...
             'ACIEvenness', 1, ...
             'ACIMatrix', 1, ...
             'ACIIntermediate', 0, ...
             'EETernaryPlot', 0)
+        
+        % {3}
         asciiSep = '\t';
         
+        % {4}
         compute = struct('ACIFtMax', {'adaptive'}, 'value', []);
+        
+        % {5}
+        info = struct('Temperature', 1);
         
         imported = 0
     end
@@ -70,7 +84,7 @@ classdef optionWindow < handle
             
             % load preset
             switch nargin
-                case 4
+                case 5
                     app.time = varargin{1};
                     app.TimeFilenameEdit.Value = app.time.format;
                     
@@ -97,6 +111,9 @@ classdef optionWindow < handle
                             app.ACIFixValueEdit.Enable = 'on';
                             app.ACIFixValueEdit.Value  = num2str(app.compute.value);
                     end
+                    
+                    app.info = varargin{5};
+                    app.ImportTemperatureCheck.Value = app.info.Temperature;
             end
         end
     end
@@ -164,6 +181,29 @@ classdef optionWindow < handle
                 'Tooltip', 'select a file that contains time info for each file', ...
                 'Position', [125 3 80 20], ...
                 'Text', 'Select', 'Enable', 'off');
+            
+            % 3. section title
+            app.InfoText = uilabel(gImport, ...
+                'Text', 'Import file information', 'HorizontalAlignment', 'left', ...
+                'BackgroundColor', [.75 .75 .75]);
+            app.InfoText.Layout.Row    = app.TimeButtonGroup.Layout.Row(2) + 1;
+            app.InfoText.Layout.Column = [1 2];
+            
+            % 4. section content
+            app.InfoPanel = uipanel(gImport);
+            app.InfoPanel.Layout.Row    = app.InfoText.Layout.Row + [1 2];
+            app.InfoPanel.Layout.Column = [1 2];
+            
+            gInfoContent = uigridlayout(app.InfoPanel);
+            gInfoContent.RowHeight   = repmat({'1x'}, 1, 1);
+            gInfoContent.ColumnWidth = {'fit'};
+            
+            % 4.1 
+            app.ImportTemperatureCheck = uicheckbox(gInfoContent, ...
+                'Value', 1, ...
+                'Text', 'Temperature', ...
+                'Enable', 'on', ...
+                'ValueChangedFcn', @(source, event) ImportTemperatureCallback(app, source, event));
             
             %% layout SaveTab
             gSave = uigridlayout(app.SaveTab);
@@ -305,6 +345,10 @@ classdef optionWindow < handle
             app.save.EETernaryPlot = event.Value;
         end
         
+        function ImportTemperatureCallback(app, source, event)
+            app.info.Temperature = event.Value;
+        end
+        
         function AsciiButtonGSelectChgCallback(app, source, event)
             if contains(event.NewValue.Text, 'comma')
                 app.asciiSep = ',';
@@ -336,7 +380,8 @@ classdef optionWindow < handle
             saveConf = app.save;
             asciiSepConf = app.asciiSep;
             computeConf  = app.compute;
-            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf', 'computeConf'); %#ok
+            infoConf     = app.info;
+            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf', 'computeConf', 'infoConf'); %#ok
             
             closereq;
         end
