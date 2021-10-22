@@ -75,7 +75,7 @@ classdef about < handle
             
             % sonoscape 0.1.0303
             app.verLabel = uilabel(app.AboutEZFigure, 'Position', [220 180 200 45], 'BackgroundColor', 'w', ...
-                'Text', {'Version: 1.1.0920'; 'September 20, 2021'; 'Licence: CC BY-NC-ND 4.0'});
+                'Text', {'Version: 1.1.1022'; 'October 22, 2021'; 'Licence: CC BY-NC-ND 4.0'});
             
             app.rightLabel = uilabel(app.AboutEZFigure, 'Position', [220 120 200 45], 'BackgroundColor', 'w', ...
                 'Text', {'© 2020- Peng Li & Almo Farina'; ''; ''}); % empty strings to be filled
