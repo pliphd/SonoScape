@@ -5,7 +5,10 @@
 %   $Author:  Peng Li, Ph.D.
 %                   Division of Sleep Medicine, Brigham & Women's Hospital
 %                   Division of Sleep Medicine, Harvard Medical School
-%   $Date:    Mar 1, 2020
+%   $Date:    Mar 01, 2020
+%   $Modif.:  Jun 30, 2023
+%                   Adapt the writing of ACITf to allow the process of long
+%                     files.
 % 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %                      (C) Peng Li 2020 -
@@ -188,7 +191,15 @@ classdef ecoacousticAnalysis < handle
                 'aciTimescale__', 'aciPara__', 'aciTTo__', 'aciTToSum__', 'aciFTot__', 'aciTToMax__', 'aciTEvenness__', 'aciFEvenness__', 'aciF__', 'aciT__');
         end
         
-        function aciWriteACIMatrix(this, savept, sep)
+        function aciWriteACIMatrix(this, savept, sep, varargin)
+            switch nargin
+                case 3
+                    writeMode = 'collate';
+                case 4
+                    writeMode = 'subdivide';
+                    per       = varargin{1};
+            end
+
             for iS = 1:length(this.timescale)
                 newFolder = fullfile(savept, ['scale_' num2str(this.timescale(iS)) 's'], 'ACI');
                 if ~(exist(newFolder, 'dir') == 7)
@@ -218,7 +229,30 @@ classdef ecoacousticAnalysis < handle
                     % acitf
                     filept = fullfile(newFolder, ...
                         "ACITf_" + num2str(this.timescale(iS)) + nameParts);
-                    writematrix(this.aciF{iS}(:, :, iF)', filept, 'Delimiter', sep);
+                    switch writeMode
+                        case 'collate'
+                            writematrix(this.aciF{iS}(:, :, iF)', filept, 'Delimiter', sep);
+                        case 'subdivide'
+                            % replace file name .txt with .xlsx
+                            fileptx = extractBefore(filept, strlength(filept)-4)+"xlsx";
+
+                            secondSeries = (1:this.timescale(iS):(size(this.aciF{iS}(:, :, iF), 2)*this.timescale(iS)))';
+                            firstSeries  = floor((secondSeries - 1) / per / 60) + 1;
+                            % writematrix([firstSeries secondSeries this.aciF{iS}(:, :, iF)'], filept, 'Delimiter', sep);
+
+                            aciFtemp  = this.aciF{iS}(:, :, iF)';
+
+                            % separate sheet
+                            allSheets = unique(firstSeries);
+                            for iSS = 1:numel(allSheets)
+                                currentAciF = aciFtemp(firstSeries == allSheets(iSS), :);
+                                writematrix(currentAciF, fileptx, 'FileType', 'spreadsheet', 'Sheet', "seg_"+num2str(allSheets(iSS)));
+                            end
+
+                            % tot
+                            totAciF = splitapply(@(x) sum(x, 1, 'omitnan'), aciFtemp, firstSeries(:));
+                            writematrix([allSheets(:) totAciF], fileptx, 'FileType', 'spreadsheet', 'Sheet', "tot");
+                    end
                     
                     % acift_tot
                     filept = fullfile(newFolder, ...

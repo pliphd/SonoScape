@@ -6,6 +6,8 @@
 %                   Division of Sleep Medicine, Brigham & Women's Hospital
 %                   Division of Sleep Medicine, Harvard Medical School
 %   $Date:    Jun 17, 2020
+%   $Modif.:  Jun 28, 2023
+%                   Allow an option to collate or subdivide long files
 % 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %                      (C) Peng Li 2020 -
@@ -36,6 +38,14 @@ classdef optionWindow < handle
         SaveACIMatrixCheck
         SaveACIIntermediateCheck
         SaveEETernaryPlotCheck
+
+        LongFileSectionText
+        SubColButtonGroup
+        SubdivideRadio
+        SubdividePerMinuteEdit
+        SubdividePerMinuteLabel
+        SubdividePerMinuteUnit
+        CollateRadio
         
         AsciiFormatText
         AsciiButtonG
@@ -74,6 +84,9 @@ classdef optionWindow < handle
         
         % {5}
         info = struct('Temperature', 1);
+
+        % {6} -- added Jun 28, 2023
+        colSub = struct('LongFileOpt', {'Subdivide'}, 'Per', 5);
         
         imported = 0
     end
@@ -84,7 +97,7 @@ classdef optionWindow < handle
             
             % load preset
             switch nargin
-                case 5
+                case 6
                     app.time = varargin{1};
                     app.TimeFilenameEdit.Value = app.time.format;
                     
@@ -114,6 +127,23 @@ classdef optionWindow < handle
                     
                     app.info = varargin{5};
                     app.ImportTemperatureCheck.Value = app.info.Temperature;
+
+                    app.colSub = varargin{6};
+                    switch app.colSub.LongFileOpt
+                        case 'Subdivide'
+                            app.SubdivideRadio.Value = 1;
+                            app.SubdividePerMinuteEdit.Value = num2str(app.colSub.Per);
+
+                            app.SubdividePerMinuteEdit.Enable  = 'on';
+                            app.SubdividePerMinuteLabel.Enable = 'on';
+                            app.SubdividePerMinuteUnit.Enable  = 'on';
+                        case 'Collate'
+                            app.CollateRadio.Value = 1;
+
+                            app.SubdividePerMinuteEdit.Enable  = 'off';
+                            app.SubdividePerMinuteLabel.Enable = 'off';
+                            app.SubdividePerMinuteUnit.Enable  = 'off';
+                    end
             end
         end
     end
@@ -211,14 +241,14 @@ classdef optionWindow < handle
             gSave.ColumnWidth = {'fit', '2x'};
             gSave.Scrollable  = 'on';
             
-            % 1. section title
+            % 1.1 section title
             app.SaveSectionText = uilabel(gSave, ...
                 'Text', 'What files to save', 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', [.75 .75 .75]);
             app.SaveSectionText.Layout.Row    = 1;
             app.SaveSectionText.Layout.Column = [1 2];
             
-            % 2. section content
+            % 1.2 section content
             app.SavePanel = uipanel(gSave);
             app.SavePanel.Layout.Row    = [2 6];
             app.SavePanel.Layout.Column = [1 2];
@@ -227,7 +257,7 @@ classdef optionWindow < handle
             gSaveContent.RowHeight   = repmat({'1x'}, 1, 5);
             gSaveContent.ColumnWidth = {'fit'};
             
-            % 2.1 
+            % 1.2.1 
             app.SaveACITotalCheck = uicheckbox(gSaveContent, ...
                 'Value', 1, ...
                 'Text', 'ACI total vectors', ...
@@ -249,14 +279,60 @@ classdef optionWindow < handle
                 'Text', 'EE ternary plot', ...
                 'ValueChangedFcn', @(source, event) SaveEETernaryCallback(app, source, event));
             
-            % 3. section title
+            % 2.1 section title
+            app.LongFileSectionText = uilabel(gSave, ...
+                'Text', 'Operating long files', 'HorizontalAlignment', 'left', ...
+                'BackgroundColor', [.75 .75 .75]);
+            app.LongFileSectionText.Layout.Row    = app.SavePanel.Layout.Row(2) + 1;
+            app.LongFileSectionText.Layout.Column = [1 2];
+            
+            % 2.2 section content
+            app.SubColButtonGroup = uibuttongroup(gSave, ...
+                'SelectionChangedFcn', @(source, event) SubColBGCallback(app, source, event));
+            app.SubColButtonGroup.Layout.Row    = app.LongFileSectionText.Layout.Row + [1 2];
+            app.SubColButtonGroup.Layout.Column = [1 2];
+            
+            % 2.2.1 
+            app.SubdivideRadio = uiradiobutton(app.SubColButtonGroup, ...
+                'Text', 'To subdivide');
+            app.SubdivideRadio.Position = app.SubdivideRadio.Position + [0 15 0 0];
+
+            app.SubdividePerMinuteEdit = uieditfield(app.SubColButtonGroup, ...
+                'Tooltip', 'define segment length in the unit of minute', ...
+                'Position', [80 3 30 20], ...
+                'Value', '5', ...
+                'HorizontalAlignment', 'right', ...
+                'ValueChangedFcn', @(source, event) SubdividePerCallback(app, source, event));
+            p = app.SubdividePerMinuteEdit.Position;
+            p(2) = app.SubdivideRadio.Position(2)+2;
+            p(1) = app.SubdivideRadio.Position(3) + 40;
+            app.SubdividePerMinuteEdit.Position = p;
+
+            app.SubdividePerMinuteLabel = uilabel(app.SubColButtonGroup, ...
+                'Text', 'Per', ...
+                'HorizontalAlignment', 'right');
+            p = [app.SubdivideRadio.Position(3) + 15 app.SubdivideRadio.Position(2)+2 20 20];
+            app.SubdividePerMinuteLabel.Position = p;
+
+            app.SubdividePerMinuteUnit = uilabel(app.SubColButtonGroup, ...
+                'Text', 'Min.', ...
+                'HorizontalAlignment', 'left');
+            p = [app.SubdivideRadio.Position(3) + 75 app.SubdivideRadio.Position(2)+2 40 20];
+            app.SubdividePerMinuteUnit.Position = p;
+            
+            % 2.2.2
+            app.CollateRadio = uiradiobutton(app.SubColButtonGroup, ...
+                'Text', 'To collate');
+            app.CollateRadio.Position = app.CollateRadio.Position - [0 5 0 0];
+
+            % 3.1 section title
             app.AsciiFormatText = uilabel(gSave, ...
                 'Text', 'ASCII file seperator', 'HorizontalAlignment', 'left', ...
                 'BackgroundColor', [.75 .75 .75]);
-            app.AsciiFormatText.Layout.Row    = app.SavePanel.Layout.Row(2) + 1;
+            app.AsciiFormatText.Layout.Row    = app.SubColButtonGroup.Layout.Row(2) + 1;
             app.AsciiFormatText.Layout.Column = [1 2];
             
-            % 4. section content
+            % 3.2 section content
             app.AsciiButtonG  = uibuttongroup(gSave, ...
                 'SelectionChangedFcn', @(source, event) AsciiButtonGSelectChgCallback(app, source, event));
             app.AsciiButtonG.Layout.Row = app.AsciiFormatText.Layout.Row + [1 2];
@@ -348,6 +424,28 @@ classdef optionWindow < handle
         function ImportTemperatureCallback(app, source, event)
             app.info.Temperature = event.Value;
         end
+
+        function SubColBGCallback(app, source, event)
+            if contains(event.NewValue.Text, 'subdivide')
+                app.SubdividePerMinuteEdit.Enable  = 'on';
+                app.SubdividePerMinuteLabel.Enable = 'on';
+                app.SubdividePerMinuteUnit.Enable  = 'on';
+                app.SubdividePerMinuteEdit.Value   = '5';
+
+                app.colSub.LongFileOpt = 'Subdivide';
+                app.colSub.Per = 5;
+            else
+                app.SubdividePerMinuteEdit.Enable  = 'off';
+                app.SubdividePerMinuteLabel.Enable = 'off';
+                app.SubdividePerMinuteUnit.Enable  = 'off';
+
+                app.colSub.LongFileOpt = 'Collate';
+            end
+        end
+
+        function SubdividePerCallback(app, source, event)
+            app.colSub.Per = str2double(event.Value);
+        end
         
         function AsciiButtonGSelectChgCallback(app, source, event)
             if contains(event.NewValue.Text, 'comma')
@@ -376,12 +474,13 @@ classdef optionWindow < handle
         function app = ImportButtonCallback(app, source, event)
             app.imported = 1;
             
-            timeConf = app.time;
-            saveConf = app.save;
+            timeConf     = app.time;
+            saveConf     = app.save;
             asciiSepConf = app.asciiSep;
             computeConf  = app.compute;
             infoConf     = app.info;
-            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf', 'computeConf', 'infoConf'); %#ok
+            colSubConf   = app.colSub;
+            save('scConfig.mat', 'timeConf', 'saveConf', 'asciiSepConf', 'computeConf', 'infoConf', 'colSubConf'); %#ok
             
             closereq;
         end
